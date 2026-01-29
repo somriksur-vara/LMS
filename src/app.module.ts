@@ -12,6 +12,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';           // Handles login/logout
 import { UsersModule } from './modules/users/users.module';        // Manages user accounts
 import { BooksModule } from './modules/books/books.module';        // Manages the book catalog
+import { CategoriesModule } from './modules/categories/categories.module'; // Manages book categories
+import { IssuesModule } from './modules/issues/issues.module';     // Handles book issue/return operations
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';  // Tracks user activities
 import { HealthModule } from './health/health.module';             // Provides health checks
 
@@ -31,11 +33,13 @@ import { HttpExceptionFilter, AllExceptionsFilter } from './common/filters';
     PrismaModule,
 
     // Include all our feature modules
-    AuthModule,      // User authentication and authorization
-    UsersModule,     // User management operations
-    BooksModule,     // Book catalog management
-    AuditLogsModule, // Activity tracking and logging
-    HealthModule,    // Health check endpoints
+    AuthModule,        // User authentication and authorization
+    UsersModule,       // User management operations
+    BooksModule,       // Book catalog management
+    CategoriesModule,  // Book category management
+    IssuesModule,      // Book issue and return operations
+    AuditLogsModule,   // Activity tracking and logging
+    HealthModule,      // Health check endpoints
   ],
   providers: [
     // Set up global error handlers that catch problems anywhere in the app

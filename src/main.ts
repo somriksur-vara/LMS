@@ -67,10 +67,10 @@ async function bootstrap() {
     .addTag('Authentication', 'User authentication and authorization')
     .addTag('Users', 'User management operations')
     .addTag('Books', 'Book catalog management')
-    .addTag('Authors', 'Author management')
     .addTag('Categories', 'Book category management')
     .addTag('Issues', 'Book issue and return operations')
     .addTag('Audit Logs', 'System activity audit logs')
+    .addTag('Health', 'Health check endpoints')
     .build();
 
   // Create the documentation and make it available at /api/docs
