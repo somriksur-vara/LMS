@@ -1,0 +1,196 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums for type safety and consistency
+enum UserRole {
+  ADMIN
+  LIBRARIAN
+  MEMBER
+}
+
+enum BookStatus {
+  AVAILABLE
+  ISSUED
+  MAINTENANCE
+  LOST
+}
+
+enum IssueStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+}
+
+enum AuditAction {
+  CREATE_USER
+  UPDATE_USER
+  DELETE_USER
+  CREATE_BOOK
+  UPDATE_BOOK
+  DELETE_BOOK
+  ISSUE_BOOK
+  RETURN_BOOK
+  CREATE_AUTHOR
+  UPDATE_AUTHOR
+  DELETE_AUTHOR
+  CREATE_CATEGORY
+  UPDATE_CATEGORY
+  DELETE_CATEGORY
+  USER_LOGIN
+  USER_LOGOUT
+}
+
+// User entity with role-based access
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole @default(MEMBER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  issuedBooks    Issue[]     @relation("IssuedToUser")
+  processedIssues Issue[]    @relation("ProcessedByUser")
+  auditLogs      AuditLog[]
+
+  @@map("users")
+  @@index([email])
+  @@index([role])
+}
+
+// Author entity with biography
+model Author {
+  id        String   @id @default(cuid())
+  name      String
+  biography String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  books BookAuthor[]
+
+  @@map("authors")
+  @@index([name])
+}
+
+// Category entity for book classification
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  books Book[]
+
+  @@map("categories")
+  @@index([name])
+}
+
+// Book entity with inventory tracking
+model Book {
+  id              String     @id @default(cuid())
+  isbn            String     @unique
+  title           String
+  description     String?
+  totalCopies     Int        @default(1)
+  availableCopies Int        @default(1)
+  status          BookStatus @default(AVAILABLE)
+  publishedYear   Int?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  // Foreign Keys
+  categoryId String?
+
+  // Relations
+  category Category?     @relation(fields: [categoryId], references: [id])
+  authors  BookAuthor[]
+  issues   Issue[]
+
+  @@map("books")
+  @@index([isbn])
+  @@index([title])
+  @@index([status])
+  @@index([categoryId])
+}
+
+// Junction table for Book-Author many-to-many relationship
+model BookAuthor {
+  id       String @id @default(cuid())
+  bookId   String
+  authorId String
+
+  // Relations
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  author Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([bookId, authorId])
+  @@map("book_authors")
+}
+
+// Issue entity for book lending operations
+model Issue {
+  id                 String      @id @default(cuid())
+  issueDate          DateTime    @default(now())
+  expectedReturnDate DateTime
+  actualReturnDate   DateTime?
+  fineAmount         Decimal     @default(0) @db.Decimal(10, 2)
+  status             IssueStatus @default(ACTIVE)
+  notes              String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  // Foreign Keys
+  bookId        String
+  issuedToId    String
+  processedById String
+
+  // Relations
+  book        Book @relation(fields: [bookId], references: [id])
+  issuedTo    User @relation("IssuedToUser", fields: [issuedToId], references: [id])
+  processedBy User @relation("ProcessedByUser", fields: [processedById], references: [id])
+
+  @@map("issues")
+  @@index([bookId])
+  @@index([issuedToId])
+  @@index([status])
+  @@index([issueDate])
+  @@index([expectedReturnDate])
+}
+
+// Audit log for system activity tracking
+model AuditLog {
+  id        String      @id @default(cuid())
+  action    AuditAction
+  entity    String // Table name (users, books, etc.)
+  entityId  String // ID of the affected record
+  metadata  Json? // Additional context data
+  timestamp DateTime    @default(now())
+
+  // Foreign Keys
+  userId String
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+  @@index([action])
+  @@index([entity])
+  @@index([userId])
+  @@index([timestamp])
+}
