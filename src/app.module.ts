@@ -2,50 +2,50 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 
-// Configuration
+// Our configuration files that define app settings
 import { appConfig, databaseConfig, jwtConfig } from './config';
 
-// Core modules
+// Our database module that handles all data operations
 import { PrismaModule } from './prisma/prisma.module';
 
-// Feature modules
-import { AuthModule } from './modules/auth/auth.module';
-import { UsersModule } from './modules/users/users.module';
-import { BooksModule } from './modules/books/books.module';
-import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
-import { HealthModule } from './health/health.module';
+// All the different parts of our application
+import { AuthModule } from './modules/auth/auth.module';           // Handles login/logout
+import { UsersModule } from './modules/users/users.module';        // Manages user accounts
+import { BooksModule } from './modules/books/books.module';        // Manages the book catalog
+import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';  // Tracks user activities
+import { HealthModule } from './health/health.module';             // Provides health checks
 
-// Global filters
+// Error handling that works across the entire app
 import { HttpExceptionFilter, AllExceptionsFilter } from './common/filters';
 
 @Module({
   imports: [
-    // Configuration
+    // Set up configuration that every part of the app can access
     ConfigModule.forRoot({
-      isGlobal: true,
-      load: [appConfig, databaseConfig, jwtConfig],
-      envFilePath: ['.env.local', '.env'],
+      isGlobal: true, // Make config available everywhere
+      load: [appConfig, databaseConfig, jwtConfig], // Load our config files
+      envFilePath: ['.env.local', '.env'], // Look for environment files in this order
     }),
 
-    // Core modules
+    // Include our database module so everyone can access the database
     PrismaModule,
 
-    // Feature modules
-    AuthModule,
-    UsersModule,
-    BooksModule,
-    AuditLogsModule,
-    HealthModule,
+    // Include all our feature modules
+    AuthModule,      // User authentication and authorization
+    UsersModule,     // User management operations
+    BooksModule,     // Book catalog management
+    AuditLogsModule, // Activity tracking and logging
+    HealthModule,    // Health check endpoints
   ],
   providers: [
-    // Global exception filters
+    // Set up global error handlers that catch problems anywhere in the app
     {
       provide: APP_FILTER,
-      useClass: AllExceptionsFilter,
+      useClass: AllExceptionsFilter, // Catches any unexpected errors
     },
     {
       provide: APP_FILTER,
-      useClass: HttpExceptionFilter,
+      useClass: HttpExceptionFilter, // Handles known HTTP errors nicely
     },
   ],
 })

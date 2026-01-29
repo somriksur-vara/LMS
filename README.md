@@ -88,46 +88,50 @@ Prisma Schema → Migrations → Prisma Client → Service Layer → Database Op
 ### 🚀 **Entry Point Files**
 
 #### `src/main.ts` - Application Bootstrap
-```typescript
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { AppModule } from './app.module';
+This is the heart of our application - where everything starts up and gets configured.
 
+```typescript
+// Line 1-5: Import all the essential NestJS components we need
+import { NestFactory } from '@nestjs/core';        // This creates our NestJS app
+import { ValidationPipe, Logger } from '@nestjs/common';  // For validating requests and logging
+import { ConfigService } from '@nestjs/config';    // Handles our environment variables
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';  // Creates API documentation
+import { AppModule } from './app.module';          // Our main app module
+
+// Line 7: This function sets up and starts our entire application
 async function bootstrap() {
-  // Create NestJS application instance
+  // Line 9: Create a new NestJS application using our AppModule as the root
   const app = await NestFactory.create(AppModule);
   
-  // Get configuration service for environment variables
+  // Line 11-12: Get access to our configuration and create a logger for startup messages
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
 
-  // Set global API prefix (e.g., /api)
+  // Line 14-15: Set up the API prefix - all our routes will start with /api
   const apiPrefix = configService.get<string>('app.apiPrefix') || 'api';
   app.setGlobalPrefix(apiPrefix);
 
-  // Enable Cross-Origin Resource Sharing for frontend integration
+  // Line 17: Allow frontend applications to make requests to our API from different domains
   app.enableCors();
 
-  // Configure global validation pipe for request validation
+  // Line 19-27: Set up automatic validation for all incoming requests
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,                    // Remove unknown properties
-      forbidNonWhitelisted: true,         // Throw error for unknown properties
-      transform: true,                    // Transform payloads to DTO instances
+      whitelist: true,                    // Only allow properties defined in our DTOs
+      forbidNonWhitelisted: true,         // Reject requests with extra properties
+      transform: true,                    // Convert request data to proper types
       transformOptions: {
-        enableImplicitConversion: true,   // Allow automatic type conversion
+        enableImplicitConversion: true,   // Automatically convert strings to numbers, etc.
       },
     }),
   );
 
-  // Configure Swagger API documentation
+  // Line 29-45: Configure Swagger for beautiful API documentation
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Library Management System API')
-    .setDescription('Complete API documentation for LMS')
-    .setVersion('1.0.0')
-    .addBearerAuth(                       // Add JWT authentication
+    .setTitle('Library Management System API')      // Title shown in docs
+    .setDescription('Complete API documentation for LMS')  // Description
+    .setVersion('1.0.0')                           // API version
+    .addBearerAuth(                                // Add JWT token authentication
       {
         type: 'http',
         scheme: 'bearer',
@@ -138,142 +142,159 @@ async function bootstrap() {
       },
       'JWT-auth',
     )
-    .addTag('Authentication', 'User authentication and authorization')
+    .addTag('Authentication', 'User authentication and authorization')  // Group endpoints
     .addTag('Users', 'User management operations')
     .addTag('Books', 'Book catalog management')
     .addTag('Audit Logs', 'System activity audit logs')
     .build();
 
-  // Create and setup Swagger documentation
+  // Line 47-58: Create the actual documentation and set it up at /api/docs
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup(`${apiPrefix}/docs`, app, document, {
     swaggerOptions: {
-      persistAuthorization: true,         // Remember JWT token
-      tagsSorter: 'alpha',               // Sort tags alphabetically
-      operationsSorter: 'alpha',         // Sort operations alphabetically
+      persistAuthorization: true,         // Remember the JWT token between page refreshes
+      tagsSorter: 'alpha',               // Sort API sections alphabetically
+      operationsSorter: 'alpha',         // Sort individual endpoints alphabetically
     },
-    customSiteTitle: 'LMS API Documentation',
-    customfavIcon: '/favicon.ico',
+    customSiteTitle: 'LMS API Documentation',      // Browser tab title
+    customfavIcon: '/favicon.ico',                 // Icon in browser tab
     customCss: `
-      .swagger-ui .topbar { display: none }
-      .swagger-ui .info .title { color: #3b82f6 }
+      .swagger-ui .topbar { display: none }        // Hide the Swagger logo bar
+      .swagger-ui .info .title { color: #3b82f6 }  // Make title blue
     `,
   });
 
-  // Start the server
+  // Line 60-61: Get the port and environment from our config
   const port = configService.get<number>('app.port') || 3000;
   const environment = configService.get<string>('app.environment') || 'development';
 
+  // Line 63: Actually start the server and listen for requests
   await app.listen(port);
 
-  // Log startup information
+  // Line 65-68: Log helpful information about where our app is running
   logger.log(`🚀 Application is running on: http://localhost:${port}/${apiPrefix}`);
   logger.log(`📚 Swagger documentation: http://localhost:${port}/${apiPrefix}/docs`);
   logger.log(`🌍 Environment: ${environment}`);
   logger.log(`🔒 CORS enabled for: *`);
 }
 
-// Start the application and handle errors
+// Line 71-74: Start the app and handle any startup errors gracefully
 bootstrap().catch((error) => {
   Logger.error('❌ Error starting server', error, 'Bootstrap');
-  process.exit(1);
+  process.exit(1);  // Exit the process if we can't start
 });
 ```
 
 #### `src/app.module.ts` - Root Application Module
-```typescript
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER } from '@nestjs/core';
+This file is like the main control center that brings together all parts of our application.
 
-// Configuration imports
+```typescript
+// Line 1-3: Import the core NestJS decorators and utilities we need
+import { Module } from '@nestjs/common';              // Decorator to define a module
+import { ConfigModule } from '@nestjs/config';        // Handles environment variables globally
+import { APP_FILTER } from '@nestjs/core';            // Token for global filters
+
+// Line 5: Import our configuration files that define app settings
 import { appConfig, databaseConfig, jwtConfig } from './config';
 
-// Core modules
+// Line 7-8: Import our core database module
 import { PrismaModule } from './prisma/prisma.module';
 
-// Feature modules
-import { AuthModule } from './modules/auth/auth.module';
-import { UsersModule } from './modules/users/users.module';
-import { BooksModule } from './modules/books/books.module';
-import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
-import { HealthModule } from './health/health.module';
+// Line 10-14: Import all our feature modules - each handles a specific part of the app
+import { AuthModule } from './modules/auth/auth.module';           // Login/logout functionality
+import { UsersModule } from './modules/users/users.module';        // User management
+import { BooksModule } from './modules/books/books.module';        // Book catalog
+import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';  // Activity tracking
+import { HealthModule } from './health/health.module';             // Health checks
 
-// Global filters for error handling
+// Line 16: Import our global error handling filters
 import { HttpExceptionFilter, AllExceptionsFilter } from './common/filters';
 
+// Line 18: This decorator tells NestJS this is a module and defines its configuration
 @Module({
   imports: [
-    // Global configuration module
+    // Line 21-25: Set up global configuration that all modules can access
     ConfigModule.forRoot({
-      isGlobal: true,                     // Make config available globally
-      load: [appConfig, databaseConfig, jwtConfig], // Load configuration files
-      envFilePath: ['.env.local', '.env'], // Environment file paths
+      isGlobal: true,                     // Make config available everywhere in the app
+      load: [appConfig, databaseConfig, jwtConfig], // Load our config files
+      envFilePath: ['.env.local', '.env'], // Look for environment files in this order
     }),
 
-    // Core database module (global)
+    // Line 27-28: Include our database module so all other modules can use it
     PrismaModule,
 
-    // Feature modules
-    AuthModule,                           // Authentication and authorization
-    UsersModule,                          // User management
-    BooksModule,                          // Book management
-    AuditLogsModule,                      // Activity logging
-    HealthModule,                         // Health checks
+    // Line 30-34: Include all our feature modules
+    AuthModule,                           // Handles user authentication
+    UsersModule,                          // Manages user accounts
+    BooksModule,                          // Manages the book catalog
+    AuditLogsModule,                      // Tracks what users do in the system
+    HealthModule,                         // Provides health check endpoints
   ],
   providers: [
-    // Global exception filters
+    // Line 37-43: Set up global error handlers that catch problems anywhere in the app
     {
       provide: APP_FILTER,
-      useClass: AllExceptionsFilter,     // Catch all unhandled exceptions
+      useClass: AllExceptionsFilter,     // Catches any unexpected errors
     },
     {
       provide: APP_FILTER,
-      useClass: HttpExceptionFilter,     // Handle HTTP exceptions
+      useClass: HttpExceptionFilter,     // Handles known HTTP errors nicely
     },
   ],
 })
+// Line 45: Export the class so main.ts can use it to start the app
 export class AppModule {}
 ```
 
 ### ⚙️ **Configuration Files**
 
 #### `src/config/app.config.ts` - Application Configuration
+This file defines the basic settings for our application like port and environment.
+
 ```typescript
+// Line 1: Import the NestJS configuration utility
 import { registerAs } from '@nestjs/config';
 
-// Register application configuration
+// Line 3-7: Export our app configuration as a function that returns settings
 export default registerAs('app', () => ({
-  port: parseInt(process.env.PORT || '3000', 10),        // Server port
-  environment: process.env.NODE_ENV || 'development',    // Environment
-  apiPrefix: process.env.API_PREFIX || 'api',            // API route prefix
+  port: parseInt(process.env.PORT || '3000', 10),        // Which port our server runs on (default 3000)
+  environment: process.env.NODE_ENV || 'development',    // Are we in development or production?
+  apiPrefix: process.env.API_PREFIX || 'api',            // What prefix to use for all our routes (/api)
 }));
 ```
 
 #### `src/config/database.config.ts` - Database Configuration
+This tells our app how to connect to the PostgreSQL database.
+
 ```typescript
+// Line 1: Import the configuration utility
 import { registerAs } from '@nestjs/config';
 
-// Register database configuration
+// Line 3-5: Export database settings - just the connection URL for now
 export default registerAs('database', () => ({
   url: process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/library_db',
 }));
 ```
 
 #### `src/config/jwt.config.ts` - JWT Configuration
+This configures how we handle user authentication tokens.
+
 ```typescript
+// Line 1: Import the configuration utility
 import { registerAs } from '@nestjs/config';
 
-// Register JWT configuration
+// Line 3-6: Export JWT settings for user authentication
 export default registerAs('jwt', () => ({
-  secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production',
-  expiresIn: process.env.JWT_EXPIRES_IN || '24h',        // Token expiration time
+  secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production', // Secret key for signing tokens
+  expiresIn: process.env.JWT_EXPIRES_IN || '24h',        // How long tokens stay valid (24 hours)
 }));
 ```
 
 #### `src/config/index.ts` - Configuration Exports
+This file makes it easy to import all our config files at once.
+
 ```typescript
-// Export all configuration modules
+// Line 1-3: Export all our configuration modules so other files can import them easily
 export { default as appConfig } from './app.config';
 export { default as databaseConfig } from './database.config';
 export { default as jwtConfig } from './jwt.config';
@@ -282,36 +303,42 @@ export { default as jwtConfig } from './jwt.config';
 ### 🗄️ **Database Layer**
 
 #### `src/prisma/prisma.service.ts` - Database Service
+This is our main database service that handles all connections and operations.
+
 ```typescript
+// Line 1: Import NestJS decorators for dependency injection and lifecycle hooks
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+// Line 2: Import the Prisma client that talks to our database
 import { PrismaClient } from '@prisma/client';
 
+// Line 4: Make this class injectable so other parts of the app can use it
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor() {
+    // Line 7-9: Set up the Prisma client with logging enabled so we can see what's happening
     super({
-      log: ['query', 'info', 'warn', 'error'],           // Enable logging
+      log: ['query', 'info', 'warn', 'error'],           // Log database queries and any issues
     });
   }
 
-  // Connect to database when module initializes
+  // Line 12-14: Connect to the database when the app starts up
   async onModuleInit() {
     await this.$connect();
   }
 
-  // Disconnect from database when module destroys
+  // Line 16-18: Disconnect from the database when the app shuts down
   async onModuleDestroy() {
     await this.$disconnect();
   }
 
-  // Utility method to clean database (development only)
+  // Line 20-28: Utility method to wipe the database clean (only for development/testing)
   async cleanDatabase() {
-    if (process.env.NODE_ENV === 'production') return;
+    if (process.env.NODE_ENV === 'production') return; // Never do this in production!
 
-    // Get all model names
+    // Get all the table names from Prisma
     const models = Reflect.ownKeys(this).filter((key) => typeof key === 'string' && key[0] !== '_');
 
-    // Delete all records from all models
+    // Delete everything from every table
     return Promise.all(
       models.map((modelKey) => (this as any)[modelKey].deleteMany()),
     );
@@ -320,14 +347,19 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 ```
 
 #### `src/prisma/prisma.module.ts` - Database Module
+This module makes our database service available throughout the entire application.
+
 ```typescript
+// Line 1: Import NestJS decorators
 import { Global, Module } from '@nestjs/common';
+// Line 2: Import our database service
 import { PrismaService } from './prisma.service';
 
-@Global()                                               // Make module globally available
+// Line 4: Make this module global so every other module can use it without importing
+@Global()
 @Module({
-  providers: [PrismaService],                           // Register service
-  exports: [PrismaService],                             // Export for other modules
+  providers: [PrismaService],                           // Register our database service
+  exports: [PrismaService],                             // Make it available to other modules
 })
 export class PrismaModule {}
 ```
@@ -571,33 +603,39 @@ import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 export class AuthModule {}
 ```
 
-#### `src/modules/auth/auth.service.ts` - Authentication Service
-```typescript
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '@/prisma/prisma.service';
-import { AuditLogsService } from '../audit-logs/audit-logs.service';
-import { AuditAction } from '@/common/enums';
-import * as bcrypt from 'bcryptjs';
-import { LoginDto, AuthResponseDto } from './dto/index';
+### 🔐 **Authentication Module**
 
+#### `src/modules/auth/auth.service.ts` - Authentication Service
+This service handles all the login/logout logic and JWT token creation.
+
+```typescript
+// Line 1-7: Import all the tools we need for authentication
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';                    // For creating JWT tokens
+import { PrismaService } from '@/prisma/prisma.service';     // For database access
+import { AuditLogsService } from '../audit-logs/audit-logs.service'; // For tracking activities
+import { AuditAction } from '@/common/enums';                // Enum for different actions
+import * as bcrypt from 'bcryptjs';                          // For password hashing
+import { LoginDto, AuthResponseDto } from './dto/index';     // Data transfer objects
+
+// Line 9: Make this class injectable so other parts can use it
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,                      // Database service
-    private jwtService: JwtService,                     // JWT service
-    private auditLogsService: AuditLogsService,         // Audit logging service
+    private prisma: PrismaService,        // For database operations
+    private jwtService: JwtService,       // For creating JWT tokens
+    private auditLogsService: AuditLogsService, // For tracking user activities
   ) {}
 
-  // Validate user credentials
+  // Line 17-42: Check if a user's email and password are correct
   async validateUser(email: string, password: string): Promise<any> {
-    // Find user by email
+    // Look up the user by their email address
     const user = await this.prisma.user.findUnique({
       where: { email },
       select: {
         id: true,
         email: true,
-        password: true,                                 // Include password for validation
+        password: true, // We need this to check the password
         firstName: true,
         lastName: true,
         role: true,
@@ -605,54 +643,54 @@ export class AuthService {
       },
     });
 
-    // Check if user exists and is active
+    // If user doesn't exist or their account is disabled, reject them
     if (!user || !user.isActive) {
       return null;
     }
 
-    // Verify password using bcrypt
+    // Check if the password they provided matches what we have stored
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return null;
     }
 
-    // Return user without password
+    // Return user info without the password (for security)
     const { password: _, ...result } = user;
     return result;
   }
 
-  // Handle user login
+  // Line 44-85: Handle user login and create a JWT token
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
-    // Validate user credentials
+    // First, make sure their credentials are valid
     const user = await this.validateUser(loginDto.email, loginDto.password);
     
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Create JWT payload
+    // Create the JWT token payload with user info
     const payload = {
-      sub: user.id,                                     // Subject (user ID)
+      sub: user.id,     // 'sub' is the standard JWT field for user ID
       email: user.email,
       role: user.role,
     };
 
-    // Generate JWT token
+    // Generate the actual JWT token
     const accessToken = this.jwtService.sign(payload);
 
-    // Log the login action
+    // Keep track of when this user logged in
     await this.auditLogsService.createLog({
       action: AuditAction.USER_LOGIN,
-      entity: 'User',
+      entity: 'users',
       entityId: user.id,
       userId: user.id,
       metadata: {
         email: user.email,
-        loginTime: new Date(),
+        loginTime: new Date().toISOString(),
       },
     });
 
-    // Return authentication response
+    // Send back the token and user info
     return {
       accessToken,
       user: {
@@ -665,16 +703,16 @@ export class AuthService {
     };
   }
 
-  // Handle user logout
+  // Line 87-98: Handle user logout (mainly just for logging purposes)
   async logout(userId: string): Promise<void> {
-    // Log the logout action
+    // Keep track of when this user logged out
     await this.auditLogsService.createLog({
       action: AuditAction.USER_LOGOUT,
-      entity: 'User',
+      entity: 'users',
       entityId: userId,
       userId: userId,
       metadata: {
-        logoutTime: new Date(),
+        logoutTime: new Date().toISOString(),
       },
     });
   }
