@@ -12,7 +12,6 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - lms-network
     healthcheck:
@@ -44,8 +43,6 @@ services:
         condition: service_healthy
     networks:
       - lms-network
-    volumes:
-      - ./logs:/app/logs
     command: >
       sh -c "
         npx prisma migrate deploy &&
