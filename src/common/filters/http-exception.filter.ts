@@ -39,8 +39,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     // Add specific error codes for common cases
     if (status === 401) {
-      errorResponse.message = 'Invalid email or password';
-      errorResponse.error = 'INVALID_CREDENTIALS';
+      if (request.url.includes('/auth/login')) {
+        errorResponse.message = 'Invalid email or password';
+        errorResponse.error = 'INVALID_CREDENTIALS';
+      } else {
+        errorResponse.message = 'Please login first or check your token';
+        errorResponse.error = 'UNAUTHORIZED';
+      }
     } else if (status === 403) {
       errorResponse.message = 'You do not have permission to access this';
       errorResponse.error = 'FORBIDDEN';

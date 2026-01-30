@@ -108,7 +108,7 @@ export class AuthController {
     schema: {
       example: {
         success: false,
-        message: 'Please login first',
+        message: 'Please login first or check your token',
         error: 'UNAUTHORIZED'
       }
     }
