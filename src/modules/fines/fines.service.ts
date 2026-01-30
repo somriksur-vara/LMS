@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditAction } from '../../common/enums/audit-action.enum';
 import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
@@ -179,7 +180,7 @@ export class FinesService {
     // Log the action
     await this.prisma.auditLog.create({
       data: {
-        action: 'WAIVE_FINE',
+        action: AuditAction.WAIVE_FINE,
         entity: 'Issue',
         entityId: issueId,
         metadata: { waiveReason },
@@ -219,7 +220,7 @@ export class FinesService {
     // Log the payment
     await this.prisma.auditLog.create({
       data: {
-        action: 'PAY_FINE',
+        action: AuditAction.PAY_FINE,
         entity: 'Issue',
         entityId: issueId,
         metadata: { 
@@ -286,7 +287,7 @@ export class FinesService {
     // Log the change
     await this.prisma.auditLog.create({
       data: {
-        action: 'UPDATE_CATEGORY', // We can add UPDATE_FINE_CONFIG later
+        action: AuditAction.UPDATE_CATEGORY, // We can add UPDATE_FINE_CONFIG later
         entity: 'FineConfiguration',
         entityId: newConfig.id,
         metadata: { finePerDay, maxFineAmount, gracePeriodDays },
