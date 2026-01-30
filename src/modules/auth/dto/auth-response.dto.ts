@@ -3,19 +3,28 @@ import { UserRole } from '@/common/enums';
 
 export class AuthResponseDto {
   @ApiProperty({
-    description: 'JWT access token',
-    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    description: 'Success status',
+    example: true,
   })
-  accessToken: string;
+  success: boolean;
 
   @ApiProperty({
-    description: 'User information',
+    description: 'Response message',
+    example: 'Login successful',
   })
-  user: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: UserRole;
+  message: string;
+
+  @ApiProperty({
+    description: 'Response data',
+  })
+  data: {
+    accessToken: string;
+    user: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      role: UserRole;
+    };
   };
 }

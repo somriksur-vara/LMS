@@ -41,16 +41,19 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'Login successful - Copy the accessToken!',
-    type: AuthResponseDto,
     schema: {
       example: {
-        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        user: {
-          id: 'clr123abc456def789',
-          email: 'admin@library.com',
-          firstName: 'System',
-          lastName: 'Administrator',
-          role: 'ADMIN'
+        success: true,
+        message: 'Login successful',
+        data: {
+          accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+          user: {
+            id: 'clr123abc456def789',
+            email: 'admin@library.com',
+            firstName: 'System',
+            lastName: 'Administrator',
+            role: 'ADMIN'
+          }
         }
       }
     }
@@ -60,30 +63,22 @@ export class AuthController {
     description: 'Invalid credentials',
     schema: {
       example: {
-        statusCode: 401,
-        message: 'Invalid credentials',
-        timestamp: '2024-01-01T00:00:00.000Z',
-        path: '/api/auth/login',
-        method: 'POST',
-      },
-    },
+        success: false,
+        message: 'Invalid email or password',
+        error: 'INVALID_CREDENTIALS'
+      }
+    }
   })
   @ApiResponse({
     status: 400,
     description: 'Validation error',
     schema: {
       example: {
-        statusCode: 400,
-        message: 'Validation failed',
-        validationErrors: [
-          'email must be an email',
-          'password must be longer than or equal to 6 characters',
-        ],
-        timestamp: '2024-01-01T00:00:00.000Z',
-        path: '/api/auth/login',
-        method: 'POST',
-      },
-    },
+        success: false,
+        message: 'Please check your input',
+        errors: ['Email is required', 'Password must be at least 6 characters']
+      }
+    }
   })
   async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
     return this.authService.login(loginDto);
@@ -102,16 +97,27 @@ export class AuthController {
     description: 'Logout successful',
     schema: {
       example: {
-        message: 'Logout successful',
-      },
-    },
+        success: true,
+        message: 'Logged out successfully'
+      }
+    }
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - Invalid or missing token',
+    description: 'Unauthorized',
+    schema: {
+      example: {
+        success: false,
+        message: 'Please login first',
+        error: 'UNAUTHORIZED'
+      }
+    }
   })
   async logout(@CurrentUser() user: CurrentUserPayload) {
     await this.authService.logout(user.id);
-    return { message: 'Logout successful' };
+    return { 
+      success: true,
+      message: 'Logged out successfully' 
+    };
   }
 }

@@ -77,16 +77,20 @@ export class AuthService {
       },
     });
 
-    // Send back the token and user info
+    // Send back the token and user info in simplified format
     return {
-      accessToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-      },
+      success: true,
+      message: 'Login successful',
+      data: {
+        accessToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        },
+      }
     };
   }
 

@@ -56,31 +56,26 @@ export class FinesController {
   })
   @ApiResponse({
     status: 200,
-    description: 'List of overdue books with fine details',
+    description: 'Overdue books retrieved successfully',
     schema: {
       example: {
+        success: true,
+        message: 'Found 2 overdue books',
         data: [
           {
             id: 'issue_123',
-            issueDate: '2024-01-01T00:00:00.000Z',
-            expectedReturnDate: '2024-01-15T00:00:00.000Z',
+            bookTitle: 'Clean Code',
+            userName: 'John Doe',
+            userEmail: 'john@example.com',
+            daysOverdue: 5,
             fineAmount: 50.00,
-            overdueDays: 5,
-            book: {
-              title: 'Clean Code',
-              isbn: '978-0132350884'
-            },
-            issuedTo: {
-              firstName: 'John',
-              lastName: 'Doe',
-              email: 'john@example.com'
-            }
+            issueDate: '2024-01-01',
+            dueDate: '2024-01-15'
           }
         ],
         pagination: {
           page: 1,
-          limit: 10,
-          total: 1,
+          total: 2,
           totalPages: 1
         }
       }
@@ -93,7 +88,27 @@ export class FinesController {
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
     
-    return this.finesService.getOverdueBooks(pageNum, limitNum);
+    const result = await this.finesService.getOverdueBooks(pageNum, limitNum);
+    
+    return {
+      success: true,
+      message: `Found ${result.data.length} overdue book(s)`,
+      data: result.data.map(issue => ({
+        id: issue.id,
+        bookTitle: issue.book.title,
+        userName: `${issue.issuedTo.firstName} ${issue.issuedTo.lastName}`,
+        userEmail: issue.issuedTo.email,
+        daysOverdue: issue.overdueDays,
+        fineAmount: Number(issue.fineAmount),
+        issueDate: issue.issueDate.toISOString().split('T')[0],
+        dueDate: issue.expectedReturnDate.toISOString().split('T')[0]
+      })),
+      pagination: {
+        page: result.pagination.page,
+        total: result.pagination.total,
+        totalPages: result.pagination.totalPages
+      }
+    };
   }
 
   @Post('calculate-all')
@@ -109,17 +124,24 @@ export class FinesController {
     description: 'Fine calculation completed successfully',
     schema: {
       example: {
-        message: 'Fine calculation completed',
-        updated: 5,
-        totalFines: 250.00
+        success: true,
+        message: 'Calculated fines for all overdue books',
+        data: {
+          booksUpdated: 5,
+          totalFines: 250.00
+        }
       }
     }
   })
   async calculateAllFines() {
     const result = await this.finesService.calculateAllActiveFines();
     return {
-      message: 'Fine calculation completed',
-      ...result,
+      success: true,
+      message: 'Calculated fines for all overdue books',
+      data: {
+        booksUpdated: result.updated,
+        totalFines: result.totalFines,
+      }
     };
   }
 
@@ -140,16 +162,27 @@ export class FinesController {
     description: 'Fine calculated successfully',
     schema: {
       example: {
-        issueId: 'clr123abc456def789',
-        fineAmount: 50.00
+        success: true,
+        message: 'Fine calculated for this book',
+        data: {
+          issueId: 'clr123abc456def789',
+          fineAmount: 50.00,
+          daysOverdue: 5
+        }
       }
     }
   })
   async calculateIssueFine(@Param('issueId') issueId: string) {
     const fineAmount = await this.finesService.calculateFine(issueId);
+    const overdueDays = Math.ceil((new Date().getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
     return {
-      issueId,
-      fineAmount,
+      success: true,
+      message: 'Fine calculated for this book',
+      data: {
+        issueId,
+        fineAmount,
+        daysOverdue: Math.max(0, overdueDays),
+      }
     };
   }
 
@@ -165,19 +198,30 @@ export class FinesController {
   })
   @ApiResponse({
     status: 200,
-    description: 'User outstanding fines retrieved',
+    description: 'Outstanding fines retrieved successfully',
     schema: {
       example: {
-        userId: 'clr123abc456def789',
-        totalOutstandingFines: 75.00
+        success: true,
+        message: 'User has outstanding fines',
+        data: {
+          userId: 'clr123abc456def789',
+          totalFines: 75.00,
+          overdueBooks: 2
+        }
       }
     }
   })
   async getUserOutstandingFines(@Param('userId') userId: string) {
     const totalFines = await this.finesService.getUserOutstandingFines(userId);
+    const fineAmount = Number(totalFines);
     return {
-      userId,
-      totalOutstandingFines: totalFines,
+      success: true,
+      message: fineAmount > 0 ? 'User has outstanding fines' : 'No outstanding fines',
+      data: {
+        userId,
+        totalFines: fineAmount,
+        overdueBooks: fineAmount > 0 ? Math.ceil(fineAmount / 10) : 0,
+      }
     };
   }
 
@@ -188,19 +232,33 @@ export class FinesController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Your outstanding fines retrieved',
+    description: 'Your outstanding fines retrieved successfully',
     schema: {
       example: {
-        userId: 'clr123abc456def789',
-        totalOutstandingFines: 25.00
+        success: true,
+        message: 'Your current outstanding fines',
+        data: {
+          totalFines: 25.00,
+          overdueBooks: 1,
+          details: 'You have 1 overdue book with ₹25 fine'
+        }
       }
     }
   })
   async getMyOutstandingFines(@CurrentUser() user: any) {
     const totalFines = await this.finesService.getUserOutstandingFines(user.id);
+    const fineAmount = Number(totalFines);
+    const overdueBooks = fineAmount > 0 ? Math.ceil(fineAmount / 10) : 0;
     return {
-      userId: user.id,
-      totalOutstandingFines: totalFines,
+      success: true,
+      message: fineAmount > 0 ? 'Your current outstanding fines' : 'You have no outstanding fines',
+      data: {
+        totalFines: fineAmount,
+        overdueBooks,
+        details: fineAmount > 0 
+          ? `You have ${overdueBooks} overdue book(s) with ₹${fineAmount} fine`
+          : 'All your books are returned on time!'
+      }
     };
   }
 
@@ -230,8 +288,13 @@ export class FinesController {
     description: 'Fine waived successfully',
     schema: {
       example: {
-        message: 'Fine waived successfully',
-        issueId: 'clr123abc456def789'
+        success: true,
+        message: 'Fine has been waived',
+        data: {
+          issueId: 'clr123abc456def789',
+          reason: 'Book was damaged when issued',
+          waiveAmount: 50.00
+        }
       }
     }
   })
@@ -240,10 +303,18 @@ export class FinesController {
     @Body() waiveFineDto: WaiveFineDto,
     @CurrentUser() user: any,
   ) {
+    const issue = await this.finesService['prisma'].issue.findUnique({ where: { id: issueId } });
+    const waiveAmount = issue?.fineAmount || 0;
+    
     await this.finesService.waiveFine(issueId, waiveFineDto.waiveReason, user.id);
     return {
-      message: 'Fine waived successfully',
-      issueId,
+      success: true,
+      message: 'Fine has been waived',
+      data: {
+        issueId,
+        reason: waiveFineDto.waiveReason,
+        waiveAmount: Number(waiveAmount),
+      }
     };
   }
 
@@ -272,9 +343,15 @@ export class FinesController {
     description: 'Payment recorded successfully',
     schema: {
       example: {
+        success: true,
         message: 'Payment recorded successfully',
-        issueId: 'clr123abc456def789',
-        paidAmount: 50.00
+        data: {
+          issueId: 'clr123abc456def789',
+          paidAmount: 50.00,
+          paymentMethod: 'CASH',
+          remainingFine: 0.00,
+          status: 'PAID'
+        }
       }
     }
   })
@@ -282,15 +359,27 @@ export class FinesController {
     @Param('issueId') issueId: string,
     @Body() recordPaymentDto: RecordPaymentDto,
   ) {
+    const issue = await this.finesService['prisma'].issue.findUnique({ where: { id: issueId } });
+    const originalFine = Number(issue?.fineAmount || 0);
+    const paidAmount = recordPaymentDto.paidAmount;
+    const remainingFine = Math.max(0, originalFine - paidAmount);
+    
     await this.finesService.recordFinePayment(
       issueId,
-      new Decimal(recordPaymentDto.paidAmount),
+      new Decimal(paidAmount),
       recordPaymentDto.paymentMethod,
     );
+    
     return {
+      success: true,
       message: 'Payment recorded successfully',
-      issueId,
-      paidAmount: recordPaymentDto.paidAmount,
+      data: {
+        issueId,
+        paidAmount,
+        paymentMethod: recordPaymentDto.paymentMethod,
+        remainingFine,
+        status: remainingFine === 0 ? 'PAID' : 'PARTIAL'
+      }
     };
   }
 
@@ -303,21 +392,32 @@ export class FinesController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Fine configuration retrieved',
+    description: 'Fine configuration retrieved successfully',
     schema: {
       example: {
-        id: 'default-config',
-        finePerDay: 10.00,
-        maxFineAmount: 1000.00,
-        gracePeriodDays: 1,
-        isActive: true,
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z'
+        success: true,
+        message: 'Current fine settings',
+        data: {
+          finePerDay: 10.00,
+          maxFineAmount: 1000.00,
+          gracePeriodDays: 1,
+          currency: 'INR'
+        }
       }
     }
   })
   async getFineConfiguration() {
-    return this.finesService.getFineConfiguration();
+    const config = await this.finesService.getFineConfiguration();
+    return {
+      success: true,
+      message: 'Current fine settings',
+      data: {
+        finePerDay: Number(config.finePerDay),
+        maxFineAmount: Number(config.maxFineAmount),
+        gracePeriodDays: config.gracePeriodDays,
+        currency: 'INR'
+      }
+    };
   }
 
   @Put('configuration')
@@ -342,15 +442,13 @@ export class FinesController {
     description: 'Fine configuration updated successfully',
     schema: {
       example: {
-        message: 'Fine configuration updated successfully',
-        configuration: {
-          id: 'new-config-id',
+        success: true,
+        message: 'Fine settings updated successfully',
+        data: {
           finePerDay: 15.00,
           maxFineAmount: 1500.00,
           gracePeriodDays: 2,
-          isActive: true,
-          createdAt: '2024-01-01T00:00:00.000Z',
-          updatedAt: '2024-01-01T00:00:00.000Z'
+          updatedBy: 'admin@library.com'
         }
       }
     }
@@ -366,8 +464,14 @@ export class FinesController {
       user.id,
     );
     return {
-      message: 'Fine configuration updated successfully',
-      configuration: config,
+      success: true,
+      message: 'Fine settings updated successfully',
+      data: {
+        finePerDay: updateFineConfigDto.finePerDay,
+        maxFineAmount: updateFineConfigDto.maxFineAmount,
+        gracePeriodDays: updateFineConfigDto.gracePeriodDays,
+        updatedBy: user.email
+      }
     };
   }
 
@@ -396,18 +500,26 @@ export class FinesController {
     description: 'Sample overdue issues created successfully',
     schema: {
       example: {
-        message: 'Sample overdue issues created for testing',
-        created: 3,
-        totalFines: 150.00
+        success: true,
+        message: 'Test data created successfully',
+        data: {
+          overdueIssuesCreated: 3,
+          totalFines: 150.00,
+          note: 'You can now test the fine system endpoints'
+        }
       }
     }
   })
   async createOverdueSample(@CurrentUser() user: any) {
-    // This is a test helper method
     const result = await this.finesService.createSampleOverdueIssues(user.id);
     return {
-      message: 'Sample overdue issues created for testing',
-      ...result,
+      success: true,
+      message: 'Test data created successfully',
+      data: {
+        overdueIssuesCreated: result.created,
+        totalFines: Number(result.totalFines),
+        note: 'You can now test the fine system endpoints'
+      }
     };
   }
 }
