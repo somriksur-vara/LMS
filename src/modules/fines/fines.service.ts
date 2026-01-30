@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { AuditAction } from '../../common/enums/audit-action.enum';
+import { AuditAction } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
@@ -180,7 +180,7 @@ export class FinesService {
     // Log the action
     await this.prisma.auditLog.create({
       data: {
-        action: AuditAction.WAIVE_FINE,
+        action: 'WAIVE_FINE' as any,
         entity: 'Issue',
         entityId: issueId,
         metadata: { waiveReason },
@@ -220,7 +220,7 @@ export class FinesService {
     // Log the payment
     await this.prisma.auditLog.create({
       data: {
-        action: AuditAction.PAY_FINE,
+        action: 'PAY_FINE' as any,
         entity: 'Issue',
         entityId: issueId,
         metadata: { 
@@ -239,14 +239,14 @@ export class FinesService {
    * Get fine configuration
    */
   async getFineConfiguration() {
-    let config = await this.prisma.fineConfiguration.findFirst({
+    let config = await (this.prisma as any).fineConfiguration.findFirst({
       where: { isActive: true },
       orderBy: { createdAt: 'desc' },
     });
 
     if (!config) {
       // Create default configuration if none exists (Indian Rupees)
-      config = await this.prisma.fineConfiguration.create({
+      config = await (this.prisma as any).fineConfiguration.create({
         data: {
           finePerDay: new Decimal(10.00), // ₹10 per day
           maxFineAmount: new Decimal(1000.00), // ₹1000 maximum
@@ -269,13 +269,13 @@ export class FinesService {
     updatedById: string,
   ) {
     // Deactivate current configuration
-    await this.prisma.fineConfiguration.updateMany({
+    await (this.prisma as any).fineConfiguration.updateMany({
       where: { isActive: true },
       data: { isActive: false },
     });
 
     // Create new configuration
-    const newConfig = await this.prisma.fineConfiguration.create({
+    const newConfig = await (this.prisma as any).fineConfiguration.create({
       data: {
         finePerDay: new Decimal(finePerDay),
         maxFineAmount: new Decimal(maxFineAmount),
@@ -287,7 +287,7 @@ export class FinesService {
     // Log the change
     await this.prisma.auditLog.create({
       data: {
-        action: AuditAction.UPDATE_CATEGORY, // We can add UPDATE_FINE_CONFIG later
+        action: 'UPDATE_CATEGORY' as any, // We can add UPDATE_FINE_CONFIG later
         entity: 'FineConfiguration',
         entityId: newConfig.id,
         metadata: { finePerDay, maxFineAmount, gracePeriodDays },
