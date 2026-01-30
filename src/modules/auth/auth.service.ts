@@ -1,8 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '@/prisma/prisma.service';
-import { AuditLogsService } from '../audit-logs/audit-logs.service';
-import { AuditAction } from '@/common/enums';
 import * as bcrypt from 'bcryptjs';
 import { LoginDto, AuthResponseDto } from './dto/index';
 
@@ -11,7 +9,6 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,        // For database operations
     private jwtService: JwtService,       // For creating JWT tokens
-    private auditLogsService: AuditLogsService, // For tracking user activities
   ) {}
 
   // Check if a user's email and password are correct
@@ -65,18 +62,6 @@ export class AuthService {
     // Generate the actual JWT token
     const accessToken = this.jwtService.sign(payload);
 
-    // Keep track of when this user logged in
-    await this.auditLogsService.createLog({
-      action: AuditAction.USER_LOGIN,
-      entity: 'users',
-      entityId: user.id,
-      userId: user.id,
-      metadata: {
-        email: user.email,
-        loginTime: new Date().toISOString(),
-      },
-    });
-
     // Send back the token and user info in simplified format
     return {
       success: true,
@@ -92,19 +77,5 @@ export class AuthService {
         },
       }
     };
-  }
-
-  // Handle user logout (mainly just for logging purposes)
-  async logout(userId: string): Promise<void> {
-    // Keep track of when this user logged out
-    await this.auditLogsService.createLog({
-      action: AuditAction.USER_LOGOUT,
-      entity: 'users',
-      entityId: userId,
-      userId: userId,
-      metadata: {
-        logoutTime: new Date().toISOString(),
-      },
-    });
   }
 }

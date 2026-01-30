@@ -5,17 +5,15 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { FinesService } from '../fines/fines.service';
 import { CreateIssueDto, UpdateIssueDto, IssueResponseDto, ReturnBookDto } from './dto/index';
 import { PaginationOptions, calculatePagination, createPaginationResult } from '@/common/utils';
-import { AuditAction, IssueStatus, BookStatus } from '@/common/enums';
+import { IssueStatus, BookStatus } from '@/common/enums';
 
 @Injectable()
 export class IssuesService {
   constructor(
     private prisma: PrismaService,
-    private auditLogsService: AuditLogsService,
     private finesService: FinesService,
   ) {}
 
@@ -107,19 +105,6 @@ export class IssuesService {
       });
 
       return issue;
-    });
-
-    // Log the action
-    await this.auditLogsService.createLog({
-      action: AuditAction.ISSUE_BOOK,
-      entity: 'Issue',
-      entityId: result.id,
-      userId: processedById,
-      metadata: {
-        bookTitle: result.book.title,
-        issuedToEmail: result.issuedTo.email,
-        expectedReturnDate: result.expectedReturnDate,
-      },
     });
 
     return {
@@ -350,21 +335,6 @@ export class IssuesService {
       return updatedIssue;
     });
 
-    // Log the action
-    await this.auditLogsService.createLog({
-      action: AuditAction.RETURN_BOOK,
-      entity: 'Issue',
-      entityId: result.id,
-      userId: returnedById,
-      metadata: {
-        bookTitle: result.book.title,
-        issuedToEmail: result.issuedTo.email,
-        returnDate,
-        fine: calculatedFine.toString(),
-        overdue: returnDate > issue.expectedReturnDate,
-      },
-    });
-
     return {
       id: result.id,
       bookId: result.bookId,
@@ -437,18 +407,6 @@ export class IssuesService {
             lastName: true,
           },
         },
-      },
-    });
-
-    // Log the action
-    await this.auditLogsService.createLog({
-      action: AuditAction.UPDATE_BOOK, // Using UPDATE_BOOK as there's no UPDATE_ISSUE action
-      entity: 'Issue',
-      entityId: issue.id,
-      userId: updatedById,
-      metadata: {
-        bookTitle: issue.book.title,
-        changes: updateIssueDto,
       },
     });
 

@@ -6,6 +6,11 @@ A **Production-Ready Library Management System** with complete authentication, b
 
 **Tech Stack:** NestJS + PostgreSQL + Prisma + JWT + Docker
 
+**✅ Simplified Features:**
+- ❌ **Removed nginx.conf** - Not needed for basic NestJS deployment
+- ❌ **Removed Audit Tracking** - Simplified system without activity logging
+- ✅ **Core Features** - Authentication, Books, Issues, Fines still fully functional
+
 ## 🏗️ How The Entire System Works
 
 ### 👥 **User Roles & What They Can Do**
@@ -275,11 +280,8 @@ POST /fines/waive/issue_123
 ├── description            ├── biography
 └── isActive              └── Books (many-to-many)
 
-📊 AUDIT_LOGS
-├── id, action, entity
-├── entityId, userId
-├── metadata, timestamp
-└── Tracks all activities
+❌ AUDIT_LOGS (REMOVED)
+Previously tracked all activities but removed for simplification
 ```
 
 **Key Relationships:**
@@ -288,7 +290,11 @@ POST /fines/waive/issue_123
 - Issue **belongs to** User and Book
 - Book **belongs to** Category
 - Book **has many** Authors (many-to-many)
-- All actions logged in AuditLogs
+
+**✅ Simplified Database:**
+- ❌ Removed AuditLog table and AuditAction enum
+- ❌ Removed User.auditLogs relation
+- ✅ All core functionality preserved
 
 ## 🚀 **API Endpoints - Complete List**
 
@@ -343,7 +349,7 @@ DELETE /categories/{id}   # Delete category (Admin/Librarian)
 
 ### 📊 Audit Logs
 ```
-GET /audit-logs           # View system activities (Admin)
+❌ REMOVED - Audit tracking has been removed to simplify the system
 ```
 
 ### ❤️ Health Check
@@ -469,9 +475,9 @@ POST /fines/pay/{issueId}
 └─────────────────┘    └─────────────────┘    └─────────────────┘
         │                       │                       │
         │                       │                       │
-   JWT Tokens              Prisma ORM              Audit Logs
-   Role-based              Guards & Filters        Fine Calculations
-   Authentication          Input Validation        Book Tracking
+   JWT Tokens              Prisma ORM              Fine Calculations
+   Role-based              Guards & Filters        Book Tracking
+   Authentication          Input Validation        User Management
 ```
 
 **Key Components:**
@@ -479,8 +485,12 @@ POST /fines/pay/{issueId}
 - **Database:** PostgreSQL with Prisma ORM
 - **API:** RESTful with Swagger documentation
 - **Security:** Guards, filters, validation
-- **Logging:** Complete audit trail
 - **Fines:** Automated calculation and tracking
+
+**✅ Simplified Architecture:**
+- ❌ Removed nginx reverse proxy (direct NestJS deployment)
+- ❌ Removed audit logging system
+- ✅ Core functionality remains intact
 
 This system provides a complete library management solution with proper authentication, book tracking, automated fines, and comprehensive audit logging! 🎉
 
@@ -523,8 +533,7 @@ LMS/
 │   │   ├── 📁 books/        # Book catalog management
 │   │   ├── 📁 categories/   # Book categories
 │   │   ├── 📁 issues/       # Book issue/return operations
-│   │   ├── 📁 fines/        # Fine calculation & management (simplified)
-│   │   └── 📁 audit-logs/   # Activity tracking
+│   │   └── 📁 fines/        # Fine calculation & management (simplified)
 │   ├── 📁 prisma/           # Prisma service
 │   ├── 📄 app.module.ts     # Root application module
 │   └── 📄 main.ts           # Application entry point
@@ -534,6 +543,11 @@ LMS/
 ├── 📄 Dockerfile            # Docker configuration
 └── 📄 docker-compose.yml    # Multi-container setup
 ```
+
+**✅ Removed Files:**
+- ❌ `nginx.conf` - Not needed for basic deployment
+- ❌ `src/modules/audit-logs/` - Audit tracking removed
+- ❌ `src/common/enums/audit-action.enum.ts` - No longer needed
 
 ## 🚀 **Production Deployment**
 

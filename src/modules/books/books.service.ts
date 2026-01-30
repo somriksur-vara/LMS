@@ -5,16 +5,14 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { CreateBookDto, UpdateBookDto, BookResponseDto } from './dto/index';
 import { PaginationOptions, calculatePagination, createPaginationResult } from '@/common/utils';
-import { AuditAction, BookStatus } from '@/common/enums';
+import { BookStatus } from '@/common/enums';
 
 @Injectable()
 export class BooksService {
   constructor(
     private prisma: PrismaService,
-    private auditLogsService: AuditLogsService,
   ) {}
 
   async create(createBookDto: CreateBookDto, createdById: string): Promise<BookResponseDto> {
@@ -79,21 +77,6 @@ export class BooksService {
             },
           },
         },
-      },
-    });
-
-    // Log the creation
-    await this.auditLogsService.createLog({
-      action: AuditAction.CREATE_BOOK,
-      entity: 'books',
-      entityId: book.id,
-      userId: createdById,
-      metadata: {
-        isbn: book.isbn,
-        title: book.title,
-        totalCopies: book.totalCopies,
-        authors: book.authors.map((ba) => ba.author.name),
-        category: book.category?.name,
       },
     });
 
@@ -311,23 +294,6 @@ export class BooksService {
       },
     });
 
-    // Log the update
-    await this.auditLogsService.createLog({
-      action: AuditAction.UPDATE_BOOK,
-      entity: 'books',
-      entityId: book.id,
-      userId: updatedById,
-      metadata: {
-        updatedFields: Object.keys(updateBookDto),
-        previousTitle: existingBook.title,
-        newTitle: book.title,
-        previousISBN: existingBook.isbn,
-        newISBN: book.isbn,
-        previousAuthors: existingBook.authors.map((ba) => ba.author.name),
-        newAuthors: book.authors.map((ba) => ba.author.name),
-      },
-    });
-
     return this.mapToResponseDto(book);
   }
 
@@ -354,19 +320,6 @@ export class BooksService {
 
     await this.prisma.book.delete({
       where: { id },
-    });
-
-    // Log the deletion
-    await this.auditLogsService.createLog({
-      action: AuditAction.DELETE_BOOK,
-      entity: 'books',
-      entityId: id,
-      userId: deletedById,
-      metadata: {
-        deletedTitle: existingBook.title,
-        deletedISBN: existingBook.isbn,
-        totalCopies: existingBook.totalCopies,
-      },
     });
   }
 

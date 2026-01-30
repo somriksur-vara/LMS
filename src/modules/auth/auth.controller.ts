@@ -90,7 +90,7 @@ export class AuthController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: '🚪 Logout and end session',
-    description: 'Logout current user and log the activity for audit purposes.',
+    description: 'Logout current user (client-side token removal).',
   })
   @ApiResponse({
     status: 200,
@@ -114,10 +114,9 @@ export class AuthController {
     }
   })
   async logout(@CurrentUser() user: CurrentUserPayload) {
-    await this.authService.logout(user.id);
     return { 
       success: true,
-      message: 'Logged out successfully' 
+      message: 'Logged out successfully. Please remove the token from your client.' 
     };
   }
 }

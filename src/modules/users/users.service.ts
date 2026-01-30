@@ -5,17 +5,15 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/index';
 import { PaginationOptions, calculatePagination, createPaginationResult } from '@/common/utils';
-import { AuditAction, UserRole } from '@/common/enums';
+import { UserRole } from '@/common/enums';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
   constructor(
     private prisma: PrismaService,
-    private auditLogsService: AuditLogsService,
   ) {}
 
   async create(
@@ -49,20 +47,6 @@ export class UsersService {
         isActive: true,
         createdAt: true,
         updatedAt: true,
-      },
-    });
-
-    // Log the creation
-    await this.auditLogsService.createLog({
-      action: AuditAction.CREATE_USER,
-      entity: 'users',
-      entityId: user.id,
-      userId: createdById,
-      metadata: {
-        email: user.email,
-        role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName,
       },
     });
 
@@ -197,21 +181,6 @@ export class UsersService {
       },
     });
 
-    // Log the update
-    await this.auditLogsService.createLog({
-      action: AuditAction.UPDATE_USER,
-      entity: 'users',
-      entityId: user.id,
-      userId: updatedById,
-      metadata: {
-        updatedFields: Object.keys(updateUserDto),
-        previousEmail: existingUser.email,
-        newEmail: user.email,
-        previousRole: existingUser.role,
-        newRole: user.role,
-      },
-    });
-
     return user;
   }
 
@@ -240,19 +209,6 @@ export class UsersService {
 
     await this.prisma.user.delete({
       where: { id },
-    });
-
-    // Log the deletion
-    await this.auditLogsService.createLog({
-      action: AuditAction.DELETE_USER,
-      entity: 'users',
-      entityId: id,
-      userId: deletedById,
-      metadata: {
-        deletedEmail: existingUser.email,
-        deletedRole: existingUser.role,
-        deletedName: `${existingUser.firstName} ${existingUser.lastName}`,
-      },
     });
   }
 }

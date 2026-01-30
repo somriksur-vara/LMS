@@ -4,16 +4,13 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { CreateCategoryDto, UpdateCategoryDto, CategoryResponseDto } from './dto/index';
 import { PaginationOptions, calculatePagination, createPaginationResult } from '@/common/utils';
-import { AuditAction } from '@/common/enums';
 
 @Injectable()
 export class CategoriesService {
   constructor(
     private prisma: PrismaService,
-    private auditLogsService: AuditLogsService,
   ) {}
 
   async create(createCategoryDto: CreateCategoryDto, createdById: string): Promise<CategoryResponseDto> {
@@ -40,15 +37,6 @@ export class CategoriesService {
           select: { books: true },
         },
       },
-    });
-
-    // Log the action
-    await this.auditLogsService.createLog({
-      action: AuditAction.CREATE_CATEGORY,
-      entity: 'Category',
-      entityId: category.id,
-      userId: createdById,
-      metadata: { categoryName: category.name },
     });
 
     return {
@@ -198,18 +186,6 @@ export class CategoriesService {
       },
     });
 
-    // Log the action
-    await this.auditLogsService.createLog({
-      action: AuditAction.UPDATE_CATEGORY,
-      entity: 'Category',
-      entityId: category.id,
-      userId: updatedById,
-      metadata: { 
-        categoryName: category.name,
-        changes: updateCategoryDto,
-      },
-    });
-
     return {
       id: category.id,
       name: category.name,
@@ -241,15 +217,6 @@ export class CategoriesService {
 
     await this.prisma.category.delete({
       where: { id },
-    });
-
-    // Log the action
-    await this.auditLogsService.createLog({
-      action: AuditAction.DELETE_CATEGORY,
-      entity: 'Category',
-      entityId: id,
-      userId: deletedById,
-      metadata: { categoryName: category.name },
     });
   }
 }

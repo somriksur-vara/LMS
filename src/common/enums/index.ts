@@ -1,1 +1,1 @@
-export { UserRole, BookStatus, IssueStatus, AuditAction } from '@prisma/client';
+export { UserRole, BookStatus, IssueStatus } from '@prisma/client';

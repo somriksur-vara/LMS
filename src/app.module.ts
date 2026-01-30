@@ -15,7 +15,7 @@ import { BooksModule } from './modules/books/books.module';        // Manages th
 import { CategoriesModule } from './modules/categories/categories.module'; // Manages book categories
 import { IssuesModule } from './modules/issues/issues.module';     // Handles book issue/return operations
 import { FinesModule } from './modules/fines/fines.module';        // Handles fine calculations and payments
-import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';  // Tracks user activities
+
 import { HealthModule } from './health/health.module';             // Provides health checks
 
 // Error handling that works across the entire app
@@ -40,7 +40,6 @@ import { HttpExceptionFilter, AllExceptionsFilter } from './common/filters';
     CategoriesModule,  // Book category management
     IssuesModule,      // Book issue and return operations
     FinesModule,       // Fine calculations and payment management
-    AuditLogsModule,   // Activity tracking and logging
     HealthModule,      // Health check endpoints
   ],
   providers: [

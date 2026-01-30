@@ -85,21 +85,6 @@ export class FinesService {
       data: { fineAmount: new Decimal(remainingFine) },
     });
 
-    // Log the payment
-    await this.prisma.auditLog.create({
-      data: {
-        action: 'PAY_FINE' as any,
-        entity: 'Issue',
-        entityId: issueId,
-        metadata: { 
-          paidAmount: paidAmount.toString(),
-          paymentMethod,
-          remainingFine: remainingFine.toString(),
-        },
-        userId: issue.issuedToId,
-      },
-    });
-
     this.logger.log(`Fine payment recorded: ₹${paidAmount} for issue ${issueId}`);
 
     return {
@@ -186,17 +171,6 @@ export class FinesService {
       data: { 
         fineAmount: new Decimal(0),
         notes: reason,
-      },
-    });
-
-    // Log the waiver
-    await this.prisma.auditLog.create({
-      data: {
-        action: 'WAIVE_FINE' as any,
-        entity: 'Issue',
-        entityId: issueId,
-        metadata: { reason, waiveAmount: waiveAmount.toString() },
-        userId: adminId,
       },
     });
 

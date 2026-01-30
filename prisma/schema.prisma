@@ -17,7 +17,6 @@ model User {
   isActive        Boolean    @default(true)
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
-  auditLogs       AuditLog[]
   issuedBooks     Issue[]    @relation("IssuedToUser")
   processedIssues Issue[]    @relation("ProcessedByUser")
 
@@ -109,23 +108,6 @@ model Issue {
   @@map("issues")
 }
 
-model AuditLog {
-  id        String      @id @default(cuid())
-  action    AuditAction
-  entity    String
-  entityId  String
-  metadata  Json?
-  timestamp DateTime    @default(now())
-  userId    String
-  user      User        @relation(fields: [userId], references: [id])
-
-  @@index([action])
-  @@index([entity])
-  @@index([userId])
-  @@index([timestamp])
-  @@map("audit_logs")
-}
-
 model FineConfiguration {
   id                    String   @id @default(cuid())
   finePerDay            Decimal  @default(5.00) @db.Decimal(10, 2)
@@ -155,26 +137,4 @@ enum IssueStatus {
   ACTIVE
   RETURNED
   OVERDUE
-}
-
-enum AuditAction {
-  CREATE_USER
-  UPDATE_USER
-  DELETE_USER
-  CREATE_BOOK
-  UPDATE_BOOK
-  DELETE_BOOK
-  ISSUE_BOOK
-  RETURN_BOOK
-  CREATE_AUTHOR
-  UPDATE_AUTHOR
-  DELETE_AUTHOR
-  CREATE_CATEGORY
-  UPDATE_CATEGORY
-  DELETE_CATEGORY
-  USER_LOGIN
-  USER_LOGOUT
-  CALCULATE_FINE
-  WAIVE_FINE
-  PAY_FINE
 }
