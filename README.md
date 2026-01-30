@@ -22,7 +22,8 @@ This is a **Production-Ready Library Management System** built with:
 - 👥 **Multi-role Authentication** (Admin, Librarian, Member)
 - 📚 **Book Management** (CRUD operations)
 - 👤 **User Management** (Role-based access)
-- 📊 **Audit Logging** (Activity tracking)
+- � **Fine Management** (Automated fine calculation in Indian Rupees ₹)
+- �📊 **Audit Logging** (Activity tracking)
 - 🔍 **Advanced Search & Filtering**
 - 📖 **API Documentation** (Interactive Swagger UI)
 

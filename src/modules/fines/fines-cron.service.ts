@@ -19,7 +19,7 @@ export class FinesCronService {
       const result = await this.finesService.calculateAllActiveFines();
       
       this.logger.log(
-        `Daily fine calculation completed: ${result.updated} issues updated, total fines: $${result.totalFines}`
+        `Daily fine calculation completed: ${result.updated} issues updated, total fines: ₹${result.totalFines}`
       );
     } catch (error) {
       this.logger.error('Error during daily fine calculation:', error);

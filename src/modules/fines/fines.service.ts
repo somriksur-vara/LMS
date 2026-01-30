@@ -57,7 +57,7 @@ export class FinesService {
       },
     });
 
-    this.logger.log(`Fine calculated for issue ${issueId}: $${fineAmount} (${overdueDays} days overdue)`);
+    this.logger.log(`Fine calculated for issue ${issueId}: ₹${fineAmount} (${overdueDays} days overdue)`);
 
     return fineAmount;
   }
@@ -231,7 +231,7 @@ export class FinesService {
       },
     });
 
-    this.logger.log(`Fine payment recorded for issue ${issueId}: $${paidAmount}`);
+    this.logger.log(`Fine payment recorded for issue ${issueId}: ₹${paidAmount}`);
   }
 
   /**
@@ -244,12 +244,12 @@ export class FinesService {
     });
 
     if (!config) {
-      // Create default configuration if none exists
+      // Create default configuration if none exists (Indian Rupees)
       config = await this.prisma.fineConfiguration.create({
         data: {
-          finePerDay: new Decimal(5.00),
-          maxFineAmount: new Decimal(500.00),
-          gracePeriodDays: 0,
+          finePerDay: new Decimal(10.00), // ₹10 per day
+          maxFineAmount: new Decimal(1000.00), // ₹1000 maximum
+          gracePeriodDays: 1,
           isActive: true,
         },
       });

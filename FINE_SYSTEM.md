@@ -6,8 +6,8 @@ The Library Management System now includes a comprehensive fine calculation and 
 ## Features
 
 ### 🔧 Fine Configuration
-- **Configurable fine rates**: Set daily fine amount (default: $5.00/day)
-- **Maximum fine limit**: Cap total fines per book (default: $500.00)
+- **Configurable fine rates**: Set daily fine amount (default: ₹10.00/day)
+- **Maximum fine limit**: Cap total fines per book (default: ₹1000.00)
 - **Grace period**: Allow days before fines start (default: 1 day)
 - **Admin-only configuration**: Only admins can modify fine settings
 
@@ -53,7 +53,7 @@ Content-Type: application/json
 Authorization: Bearer <token>
 
 {
-  "paidAmount": 25.00,
+  "paidAmount": 50.00,
   "paymentMethod": "CASH"
 }
 ```
@@ -76,8 +76,8 @@ Content-Type: application/json
 Authorization: Bearer <admin-token>
 
 {
-  "finePerDay": 3.00,
-  "maxFineAmount": 300.00,
+  "finePerDay": 15.00,
+  "maxFineAmount": 1500.00,
   "gracePeriodDays": 2
 }
 ```
@@ -95,13 +95,13 @@ fineAmount = min(effectiveOverdueDays * finePerDay, maxFineAmount)
 - Book due: January 1st
 - Current date: January 10th
 - Grace period: 1 day
-- Fine per day: $5.00
-- Max fine: $500.00
+- Fine per day: ₹10.00
+- Max fine: ₹1000.00
 
 **Calculation:**
 - Overdue days: 9 days
 - Effective overdue days: 9 - 1 = 8 days
-- Fine amount: 8 × $5.00 = $40.00
+- Fine amount: 8 × ₹10.00 = ₹80.00
 
 ## Automated Tasks
 
@@ -120,9 +120,9 @@ fineAmount = min(effectiveOverdueDays * finePerDay, maxFineAmount)
 ```sql
 CREATE TABLE fine_configurations (
   id VARCHAR PRIMARY KEY,
-  fine_per_day DECIMAL(10,2) DEFAULT 5.00,
-  max_fine_amount DECIMAL(10,2) DEFAULT 500.00,
-  grace_period_days INTEGER DEFAULT 0,
+  fine_per_day DECIMAL(10,2) DEFAULT 10.00,
+  max_fine_amount DECIMAL(10,2) DEFAULT 1000.00,
+  grace_period_days INTEGER DEFAULT 1,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
@@ -143,8 +143,8 @@ All fine-related actions are logged:
 - `PAY_FINE`: When payments are recorded
 
 ## Default Configuration
-- **Fine per day**: $5.00
-- **Maximum fine**: $500.00
+- **Fine per day**: ₹10.00
+- **Maximum fine**: ₹1000.00
 - **Grace period**: 1 day
 - **Payment methods**: CASH, CARD, ONLINE, BANK_TRANSFER
 

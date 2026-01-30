@@ -201,8 +201,8 @@ async function main() {
     update: {},
     create: {
       id: 'default-config',
-      finePerDay: 5.00,
-      maxFineAmount: 500.00,
+      finePerDay: 10.00, // ₹10 per day
+      maxFineAmount: 1000.00, // ₹1000 maximum
       gracePeriodDays: 1,
       isActive: true,
     },
@@ -215,8 +215,8 @@ async function main() {
   console.log('   - Member: member@library.com / member123');
   console.log('📖 Created sample books, authors, and categories');
   console.log('💰 Fine Configuration:');
-  console.log(`   - Fine per day: $${fineConfig.finePerDay}`);
-  console.log(`   - Maximum fine: $${fineConfig.maxFineAmount}`);
+  console.log(`   - Fine per day: ₹${fineConfig.finePerDay}`);
+  console.log(`   - Maximum fine: ₹${fineConfig.maxFineAmount}`);
   console.log(`   - Grace period: ${fineConfig.gracePeriodDays} day(s)`);
 }
 
