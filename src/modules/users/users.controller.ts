@@ -41,29 +41,77 @@ export class UsersController {
   @ApiResponse({
     status: 201,
     description: 'User created successfully',
-    type: UserResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'User created successfully',
+        data: {
+          id: 'clp123456789',
+          email: 'john.doe@library.com',
+          firstName: 'John',
+          lastName: 'Doe',
+          role: 'MEMBER',
+          isActive: true,
+          createdAt: '2024-01-01T12:00:00.000Z',
+          updatedAt: '2024-01-01T12:00:00.000Z',
+        }
+      }
+    }
   })
   @ApiResponse({
     status: 400,
     description: 'Validation error',
+    schema: {
+      example: {
+        success: false,
+        message: 'Please check your input',
+        errors: ['Email is required', 'Password must be at least 6 characters']
+      }
+    }
   })
   @ApiResponse({
     status: 401,
     description: 'Unauthorized - Invalid or missing token',
+    schema: {
+      example: {
+        success: false,
+        message: 'Please login first or check your token',
+        error: 'UNAUTHORIZED'
+      }
+    }
   })
   @ApiResponse({
     status: 403,
     description: 'Forbidden - Insufficient permissions',
+    schema: {
+      example: {
+        success: false,
+        message: 'You do not have permission to access this',
+        error: 'FORBIDDEN'
+      }
+    }
   })
   @ApiResponse({
     status: 409,
     description: 'Conflict - User with email already exists',
+    schema: {
+      example: {
+        success: false,
+        message: 'User with this email already exists',
+        error: 'EMAIL_EXISTS'
+      }
+    }
   })
   async create(
     @Body() createUserDto: CreateUserDto,
     @CurrentUser() user: CurrentUserPayload,
-  ): Promise<UserResponseDto> {
-    return this.usersService.create(createUserDto, user.id);
+  ) {
+    const result = await this.usersService.create(createUserDto, user.id);
+    return {
+      success: true,
+      message: 'User created successfully',
+      data: result
+    };
   }
 
   @Get()
@@ -110,6 +158,8 @@ export class UsersController {
     description: 'Users retrieved successfully',
     schema: {
       example: {
+        success: true,
+        message: 'Found 2 user(s)',
         data: [
           {
             id: 'clp123456789',
@@ -122,8 +172,8 @@ export class UsersController {
             updatedAt: '2024-01-01T12:00:00.000Z',
           },
         ],
-        meta: {
-          total: 1,
+        pagination: {
+          total: 2,
           page: 1,
           limit: 10,
           totalPages: 1,
@@ -153,7 +203,13 @@ export class UsersController {
     if (isActive !== undefined) filters.isActive = isActive === true;
     if (search) filters.search = search;
 
-    return this.usersService.findAll({ page, limit }, filters);
+    const result = await this.usersService.findAll({ page, limit }, filters);
+    return {
+      success: true,
+      message: `Found ${result.data.length} user(s)`,
+      data: result.data,
+      pagination: result.meta
+    };
   }
 
   @Get(':id')
@@ -170,7 +226,22 @@ export class UsersController {
   @ApiResponse({
     status: 200,
     description: 'User retrieved successfully',
-    type: UserResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'User retrieved successfully',
+        data: {
+          id: 'clp123456789',
+          email: 'john.doe@library.com',
+          firstName: 'John',
+          lastName: 'Doe',
+          role: 'MEMBER',
+          isActive: true,
+          createdAt: '2024-01-01T12:00:00.000Z',
+          updatedAt: '2024-01-01T12:00:00.000Z',
+        }
+      }
+    }
   })
   @ApiResponse({
     status: 401,
@@ -184,8 +255,13 @@ export class UsersController {
     status: 404,
     description: 'User not found',
   })
-  async findOne(@Param('id') id: string): Promise<UserResponseDto> {
-    return this.usersService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    const result = await this.usersService.findOne(id);
+    return {
+      success: true,
+      message: 'User retrieved successfully',
+      data: result
+    };
   }
 
   @Patch(':id')
@@ -202,7 +278,22 @@ export class UsersController {
   @ApiResponse({
     status: 200,
     description: 'User updated successfully',
-    type: UserResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'User updated successfully',
+        data: {
+          id: 'clp123456789',
+          email: 'john.doe@library.com',
+          firstName: 'John',
+          lastName: 'Doe',
+          role: 'MEMBER',
+          isActive: true,
+          createdAt: '2024-01-01T12:00:00.000Z',
+          updatedAt: '2024-01-01T12:00:00.000Z',
+        }
+      }
+    }
   })
   @ApiResponse({
     status: 400,
@@ -228,8 +319,13 @@ export class UsersController {
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
     @CurrentUser() user: CurrentUserPayload,
-  ): Promise<UserResponseDto> {
-    return this.usersService.update(id, updateUserDto, user.id, user.role as UserRole);
+  ) {
+    const result = await this.usersService.update(id, updateUserDto, user.id, user.role as UserRole);
+    return {
+      success: true,
+      message: 'User updated successfully',
+      data: result
+    };
   }
 
   @Delete(':id')
@@ -248,6 +344,7 @@ export class UsersController {
     description: 'User deleted successfully',
     schema: {
       example: {
+        success: true,
         message: 'User deleted successfully',
       },
     },
@@ -269,6 +366,9 @@ export class UsersController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     await this.usersService.remove(id, user.id, user.role as UserRole);
-    return { message: 'User deleted successfully' };
+    return { 
+      success: true,
+      message: 'User deleted successfully' 
+    };
   }
 }

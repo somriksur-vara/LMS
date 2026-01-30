@@ -42,7 +42,24 @@ export class BooksController {
   @ApiResponse({
     status: 201,
     description: 'Book created successfully',
-    type: BookResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'Book created successfully',
+        data: {
+          id: 'clp123456789',
+          isbn: '978-0132350884',
+          title: 'Clean Code: A Handbook of Agile Software Craftsmanship',
+          description: 'A comprehensive guide to writing clean, maintainable code',
+          totalCopies: 5,
+          availableCopies: 5,
+          status: 'AVAILABLE',
+          publishedYear: 2008,
+          createdAt: '2024-01-01T12:00:00.000Z',
+          updatedAt: '2024-01-01T12:00:00.000Z',
+        }
+      }
+    }
   })
   @ApiResponse({
     status: 400,
@@ -63,8 +80,13 @@ export class BooksController {
   async create(
     @Body() createBookDto: CreateBookDto,
     @CurrentUser() user: CurrentUserPayload,
-  ): Promise<BookResponseDto> {
-    return this.booksService.create(createBookDto, user.id);
+  ) {
+    const result = await this.booksService.create(createBookDto, user.id);
+    return {
+      success: true,
+      message: 'Book created successfully',
+      data: result
+    };
   }
 
   @Get()
@@ -122,6 +144,8 @@ export class BooksController {
     description: 'Books retrieved successfully',
     schema: {
       example: {
+        success: true,
+        message: 'Found 1 book(s)',
         data: [
           {
             id: 'clp123456789',
@@ -148,7 +172,7 @@ export class BooksController {
             ],
           },
         ],
-        meta: {
+        pagination: {
           total: 1,
           page: 1,
           limit: 10,
@@ -179,7 +203,13 @@ export class BooksController {
     if (status) filters.status = status;
     if (availableOnly) filters.availableOnly = availableOnly;
 
-    return this.booksService.findAll({ page, limit }, filters);
+    const result = await this.booksService.findAll({ page, limit }, filters);
+    return {
+      success: true,
+      message: `Found ${result.data.length} book(s)`,
+      data: result.data,
+      pagination: result.meta
+    };
   }
 
   @Get(':id')
@@ -195,7 +225,24 @@ export class BooksController {
   @ApiResponse({
     status: 200,
     description: 'Book retrieved successfully',
-    type: BookResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'Book retrieved successfully',
+        data: {
+          id: 'clp123456789',
+          isbn: '978-0132350884',
+          title: 'Clean Code: A Handbook of Agile Software Craftsmanship',
+          description: 'A comprehensive guide to writing clean, maintainable code',
+          totalCopies: 5,
+          availableCopies: 3,
+          status: 'AVAILABLE',
+          publishedYear: 2008,
+          createdAt: '2024-01-01T12:00:00.000Z',
+          updatedAt: '2024-01-01T12:00:00.000Z',
+        }
+      }
+    }
   })
   @ApiResponse({
     status: 401,
@@ -205,8 +252,13 @@ export class BooksController {
     status: 404,
     description: 'Book not found',
   })
-  async findOne(@Param('id') id: string): Promise<BookResponseDto> {
-    return this.booksService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    const result = await this.booksService.findOne(id);
+    return {
+      success: true,
+      message: 'Book retrieved successfully',
+      data: result
+    };
   }
 
   @Patch(':id')
@@ -223,7 +275,24 @@ export class BooksController {
   @ApiResponse({
     status: 200,
     description: 'Book updated successfully',
-    type: BookResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'Book updated successfully',
+        data: {
+          id: 'clp123456789',
+          isbn: '978-0132350884',
+          title: 'Clean Code: A Handbook of Agile Software Craftsmanship',
+          description: 'A comprehensive guide to writing clean, maintainable code',
+          totalCopies: 5,
+          availableCopies: 3,
+          status: 'AVAILABLE',
+          publishedYear: 2008,
+          createdAt: '2024-01-01T12:00:00.000Z',
+          updatedAt: '2024-01-01T12:00:00.000Z',
+        }
+      }
+    }
   })
   @ApiResponse({
     status: 400,
@@ -249,8 +318,13 @@ export class BooksController {
     @Param('id') id: string,
     @Body() updateBookDto: UpdateBookDto,
     @CurrentUser() user: CurrentUserPayload,
-  ): Promise<BookResponseDto> {
-    return this.booksService.update(id, updateBookDto, user.id);
+  ) {
+    const result = await this.booksService.update(id, updateBookDto, user.id);
+    return {
+      success: true,
+      message: 'Book updated successfully',
+      data: result
+    };
   }
 
   @Delete(':id')
@@ -269,6 +343,7 @@ export class BooksController {
     description: 'Book deleted successfully',
     schema: {
       example: {
+        success: true,
         message: 'Book deleted successfully',
       },
     },
@@ -294,6 +369,9 @@ export class BooksController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     await this.booksService.remove(id, user.id);
-    return { message: 'Book deleted successfully' };
+    return { 
+      success: true,
+      message: 'Book deleted successfully' 
+    };
   }
 }

@@ -84,6 +84,8 @@ export class AuditLogsController {
     description: 'Audit logs retrieved successfully',
     schema: {
       example: {
+        success: true,
+        message: 'Found 1 audit log(s)',
         data: [
           {
             id: 'clp123456789',
@@ -104,7 +106,7 @@ export class AuditLogsController {
             },
           },
         ],
-        meta: {
+        pagination: {
           total: 1,
           page: 1,
           limit: 10,
@@ -140,6 +142,12 @@ export class AuditLogsController {
     if (startDate) filters.startDate = new Date(startDate);
     if (endDate) filters.endDate = new Date(endDate);
 
-    return this.auditLogsService.findAll({ page, limit }, filters);
+    const result = await this.auditLogsService.findAll({ page, limit }, filters);
+    return {
+      success: true,
+      message: `Found ${result.data.length} audit log(s)`,
+      data: result.data,
+      pagination: result.meta
+    };
   }
 }

@@ -58,6 +58,16 @@ async function bootstrap() {
       - ✅ Success: "success": true in response
       - ❌ Error: "success": false in response
       - 📊 Check the "message" field for clear explanation
+      - 📋 Look for "data" field containing the actual results
+      
+      ### 📋 Response Format
+      All endpoints return consistent format:
+      - success: true/false
+      - message: Clear description of what happened
+      - data: Contains the actual results (only on success)
+      - pagination: Page info for list endpoints
+      - error: Error code (only on error)
+      - errors: Validation errors array (only for validation errors)
       
       ### 🔑 Authentication Required
       Most endpoints need authentication. Look for the 🔒 lock icon next to endpoints.

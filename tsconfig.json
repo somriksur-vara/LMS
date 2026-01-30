@@ -10,7 +10,8 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
-    "incremental": true,
+    "incremental": false,
+    "tsBuildInfoFile": null,
     "skipLibCheck": true,
     "strictNullChecks": true,
     "noImplicitAny": true,
@@ -25,5 +26,16 @@
       "@/modules/*": ["src/modules/*"],
       "@/config/*": ["src/config/*"]
     }
-  }
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules/**/*",
+    "dist/**/*",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.d.ts",
+    "temp-refresh.ts"
+  ]
 }

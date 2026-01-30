@@ -38,25 +38,64 @@ export class IssuesController {
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Book issued successfully',
-    type: IssueResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'Book issued successfully',
+        data: {
+          id: 'issue_123',
+          bookId: 'book_123',
+          issuedToId: 'user_123',
+          issueDate: '2024-01-01',
+          expectedReturnDate: '2024-01-15',
+          status: 'ACTIVE'
+        }
+      }
+    }
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'Book or user not found',
+    schema: {
+      example: {
+        success: false,
+        message: 'The requested resource was not found',
+        error: 'NOT_FOUND'
+      }
+    }
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
     description: 'No available copies of this book',
+    schema: {
+      example: {
+        success: false,
+        message: 'No available copies of this book',
+        error: 'NO_COPIES_AVAILABLE'
+      }
+    }
   })
   @ApiResponse({
     status: HttpStatus.CONFLICT,
     description: 'User already has this book issued',
+    schema: {
+      example: {
+        success: false,
+        message: 'User already has this book issued',
+        error: 'BOOK_ALREADY_ISSUED'
+      }
+    }
   })
   async create(
     @Body() createIssueDto: CreateIssueDto,
     @CurrentUser() user: any,
-  ): Promise<IssueResponseDto> {
-    return this.issuesService.create(createIssueDto, user.id);
+  ) {
+    const result = await this.issuesService.create(createIssueDto, user.id);
+    return {
+      success: true,
+      message: 'Book issued successfully',
+      data: result
+    };
   }
 
   @Get()
@@ -71,6 +110,27 @@ export class IssuesController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Issues retrieved successfully',
+    schema: {
+      example: {
+        success: true,
+        message: 'Found 2 issue(s)',
+        data: [
+          {
+            id: 'issue_123',
+            bookTitle: 'Clean Code',
+            userName: 'John Doe',
+            issueDate: '2024-01-01',
+            expectedReturnDate: '2024-01-15',
+            status: 'ACTIVE'
+          }
+        ],
+        pagination: {
+          page: 1,
+          total: 2,
+          totalPages: 1
+        }
+      }
+    }
   })
   async findAll(
     @Query('page') page?: number,
@@ -93,7 +153,13 @@ export class IssuesController {
       issuedToId,
       overdue: overdue === true,
     };
-    return this.issuesService.findAll(options);
+    const result = await this.issuesService.findAll(options);
+    return {
+      success: true,
+      message: `Found ${result.data.length} issue(s)`,
+      data: result.data,
+      pagination: result.meta
+    };
   }
 
   @Get('my-issues')
@@ -105,6 +171,26 @@ export class IssuesController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'User issues retrieved successfully',
+    schema: {
+      example: {
+        success: true,
+        message: 'Found 1 of your issue(s)',
+        data: [
+          {
+            id: 'issue_123',
+            bookTitle: 'Clean Code',
+            issueDate: '2024-01-01',
+            expectedReturnDate: '2024-01-15',
+            status: 'ACTIVE'
+          }
+        ],
+        pagination: {
+          page: 1,
+          total: 1,
+          totalPages: 1
+        }
+      }
+    }
   })
   async findMyIssues(
     @CurrentUser() user: any,
@@ -121,7 +207,13 @@ export class IssuesController {
       status,
       issuedToId: user.id,
     };
-    return this.issuesService.findAll(options);
+    const result = await this.issuesService.findAll(options);
+    return {
+      success: true,
+      message: `Found ${result.data.length} of your issue(s)`,
+      data: result.data,
+      pagination: result.meta
+    };
   }
 
   @Get(':id')
@@ -129,14 +221,32 @@ export class IssuesController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Issue retrieved successfully',
-    type: IssueResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'Issue retrieved successfully',
+        data: {
+          id: 'issue_123',
+          bookTitle: 'Clean Code',
+          userName: 'John Doe',
+          issueDate: '2024-01-01',
+          expectedReturnDate: '2024-01-15',
+          status: 'ACTIVE'
+        }
+      }
+    }
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'Issue not found',
   })
-  async findOne(@Param('id') id: string): Promise<IssueResponseDto> {
-    return this.issuesService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    const result = await this.issuesService.findOne(id);
+    return {
+      success: true,
+      message: 'Issue retrieved successfully',
+      data: result
+    };
   }
 
   @Patch(':id')
@@ -145,7 +255,20 @@ export class IssuesController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Issue updated successfully',
-    type: IssueResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'Issue updated successfully',
+        data: {
+          id: 'issue_123',
+          bookTitle: 'Clean Code',
+          userName: 'John Doe',
+          issueDate: '2024-01-01',
+          expectedReturnDate: '2024-01-20',
+          status: 'ACTIVE'
+        }
+      }
+    }
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
@@ -155,8 +278,13 @@ export class IssuesController {
     @Param('id') id: string,
     @Body() updateIssueDto: UpdateIssueDto,
     @CurrentUser() user: any,
-  ): Promise<IssueResponseDto> {
-    return this.issuesService.update(id, updateIssueDto, user.id);
+  ) {
+    const result = await this.issuesService.update(id, updateIssueDto, user.id);
+    return {
+      success: true,
+      message: 'Issue updated successfully',
+      data: result
+    };
   }
 
   @Post(':id/return')
@@ -165,7 +293,20 @@ export class IssuesController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Book returned successfully',
-    type: IssueResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'Book returned successfully',
+        data: {
+          id: 'issue_123',
+          bookTitle: 'Clean Code',
+          userName: 'John Doe',
+          issueDate: '2024-01-01',
+          returnDate: '2024-01-10',
+          status: 'RETURNED'
+        }
+      }
+    }
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
@@ -179,7 +320,12 @@ export class IssuesController {
     @Param('id') id: string,
     @Body() returnBookDto: ReturnBookDto,
     @CurrentUser() user: any,
-  ): Promise<IssueResponseDto> {
-    return this.issuesService.returnBook(id, returnBookDto, user.id);
+  ) {
+    const result = await this.issuesService.returnBook(id, returnBookDto, user.id);
+    return {
+      success: true,
+      message: 'Book returned successfully',
+      data: result
+    };
   }
 }

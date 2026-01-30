@@ -39,7 +39,18 @@ export class CategoriesController {
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Category created successfully',
-    type: CategoryResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'Category created successfully',
+        data: {
+          id: 'cat_123',
+          name: 'Technology',
+          description: 'Books about technology and programming',
+          createdAt: '2024-01-01T12:00:00.000Z'
+        }
+      }
+    }
   })
   @ApiResponse({
     status: HttpStatus.CONFLICT,
@@ -48,8 +59,13 @@ export class CategoriesController {
   async create(
     @Body() createCategoryDto: CreateCategoryDto,
     @CurrentUser() user: any,
-  ): Promise<CategoryResponseDto> {
-    return this.categoriesService.create(createCategoryDto, user.id);
+  ) {
+    const result = await this.categoriesService.create(createCategoryDto, user.id);
+    return {
+      success: true,
+      message: 'Category created successfully',
+      data: result
+    };
   }
 
   @Get()
@@ -60,6 +76,25 @@ export class CategoriesController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Categories retrieved successfully',
+    schema: {
+      example: {
+        success: true,
+        message: 'Found 2 categories',
+        data: [
+          {
+            id: 'cat_123',
+            name: 'Technology',
+            description: 'Books about technology and programming',
+            createdAt: '2024-01-01T12:00:00.000Z'
+          }
+        ],
+        pagination: {
+          page: 1,
+          total: 2,
+          totalPages: 1
+        }
+      }
+    }
   })
   async findAll(
     @Query('page') page?: number,
@@ -71,7 +106,13 @@ export class CategoriesController {
       limit: limit ? Number(limit) : undefined,
       search,
     };
-    return this.categoriesService.findAll(options);
+    const result = await this.categoriesService.findAll(options);
+    return {
+      success: true,
+      message: `Found ${result.data.length} categor${result.data.length === 1 ? 'y' : 'ies'}`,
+      data: result.data,
+      pagination: result.meta
+    };
   }
 
   @Get(':id')
@@ -79,14 +120,30 @@ export class CategoriesController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Category retrieved successfully',
-    type: CategoryResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'Category retrieved successfully',
+        data: {
+          id: 'cat_123',
+          name: 'Technology',
+          description: 'Books about technology and programming',
+          createdAt: '2024-01-01T12:00:00.000Z'
+        }
+      }
+    }
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'Category not found',
   })
-  async findOne(@Param('id') id: string): Promise<CategoryResponseDto> {
-    return this.categoriesService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    const result = await this.categoriesService.findOne(id);
+    return {
+      success: true,
+      message: 'Category retrieved successfully',
+      data: result
+    };
   }
 
   @Patch(':id')
@@ -95,7 +152,18 @@ export class CategoriesController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Category updated successfully',
-    type: CategoryResponseDto,
+    schema: {
+      example: {
+        success: true,
+        message: 'Category updated successfully',
+        data: {
+          id: 'cat_123',
+          name: 'Technology',
+          description: 'Books about technology and programming',
+          updatedAt: '2024-01-01T12:00:00.000Z'
+        }
+      }
+    }
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
@@ -109,8 +177,13 @@ export class CategoriesController {
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
     @CurrentUser() user: any,
-  ): Promise<CategoryResponseDto> {
-    return this.categoriesService.update(id, updateCategoryDto, user.id);
+  ) {
+    const result = await this.categoriesService.update(id, updateCategoryDto, user.id);
+    return {
+      success: true,
+      message: 'Category updated successfully',
+      data: result
+    };
   }
 
   @Delete(':id')
@@ -119,6 +192,12 @@ export class CategoriesController {
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
     description: 'Category deleted successfully',
+    schema: {
+      example: {
+        success: true,
+        message: 'Category deleted successfully'
+      }
+    }
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
@@ -128,7 +207,11 @@ export class CategoriesController {
     status: HttpStatus.CONFLICT,
     description: 'Cannot delete category with associated books',
   })
-  async remove(@Param('id') id: string, @CurrentUser() user: any): Promise<void> {
-    return this.categoriesService.remove(id, user.id);
+  async remove(@Param('id') id: string, @CurrentUser() user: any) {
+    await this.categoriesService.remove(id, user.id);
+    return {
+      success: true,
+      message: 'Category deleted successfully'
+    };
   }
 }

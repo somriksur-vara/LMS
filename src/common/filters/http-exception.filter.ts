@@ -12,7 +12,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
     const status = exception.getStatus();
 
     // Get the exception response
@@ -39,13 +38,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     // Add specific error codes for common cases
     if (status === 401) {
-      if (request.url.includes('/auth/login')) {
-        errorResponse.message = 'Invalid email or password';
-        errorResponse.error = 'INVALID_CREDENTIALS';
-      } else {
-        errorResponse.message = 'Please login first or check your token';
-        errorResponse.error = 'UNAUTHORIZED';
-      }
+      errorResponse.message = 'Please login first or check your token';
+      errorResponse.error = 'UNAUTHORIZED';
     } else if (status === 403) {
       errorResponse.message = 'You do not have permission to access this';
       errorResponse.error = 'FORBIDDEN';
@@ -65,7 +59,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
 
     const status =
       exception instanceof HttpException

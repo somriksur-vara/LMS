@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class RecordPaymentDto {
   @ApiProperty({
-    description: 'Amount paid in Indian Rupees',
+    description: 'Amount paid',
     example: 50.00,
     minimum: 0.01,
   })
@@ -12,12 +12,12 @@ export class RecordPaymentDto {
   paidAmount: number;
 
   @ApiProperty({
-    description: 'Payment method used',
+    description: 'Payment method',
     example: 'CASH',
-    enum: ['CASH', 'CARD', 'ONLINE', 'BANK_TRANSFER'],
+    enum: ['CASH', 'CARD', 'UPI', 'ONLINE'],
   })
   @IsString()
   @IsNotEmpty()
-  @IsIn(['CASH', 'CARD', 'ONLINE', 'BANK_TRANSFER'])
+  @IsIn(['CASH', 'CARD', 'UPI', 'ONLINE'])
   paymentMethod: string;
 }

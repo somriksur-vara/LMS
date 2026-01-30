@@ -1,14 +1,12 @@
 import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { FinesController } from './fines.controller';
 import { FinesService } from './fines.service';
-import { FinesCronService } from './fines-cron.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
-  imports: [PrismaModule, ScheduleModule.forRoot()],
+  imports: [PrismaModule],
   controllers: [FinesController],
-  providers: [FinesService, FinesCronService],
+  providers: [FinesService],
   exports: [FinesService],
 })
 export class FinesModule {}

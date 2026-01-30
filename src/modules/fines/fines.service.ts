@@ -1,6 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { AuditAction } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
@@ -10,212 +9,81 @@ export class FinesService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Calculate fine for an overdue book
+   * Get user's fines with detailed breakdown
    */
-  async calculateFine(issueId: string): Promise<Decimal> {
-    const issue = await this.prisma.issue.findUnique({
-      where: { id: issueId },
-      include: { book: true, issuedTo: true },
-    });
-
-    if (!issue) {
-      throw new Error('Issue not found');
-    }
-
-    if (issue.actualReturnDate) {
-      // Book already returned, return existing fine
-      return issue.fineAmount;
-    }
-
-    const fineConfig = await this.getFineConfiguration();
-    const currentDate = new Date();
-    const expectedReturnDate = new Date(issue.expectedReturnDate);
-
-    // Calculate overdue days
-    const overdueDays = Math.max(
-      0,
-      Math.ceil((currentDate.getTime() - expectedReturnDate.getTime()) / (1000 * 60 * 60 * 24))
-    );
-
-    if (overdueDays <= fineConfig.gracePeriodDays) {
-      return new Decimal(0);
-    }
-
-    const effectiveOverdueDays = overdueDays - fineConfig.gracePeriodDays;
-    let fineAmount = new Decimal(effectiveOverdueDays).mul(fineConfig.finePerDay);
-
-    // Apply maximum fine limit
-    if (fineAmount.gt(fineConfig.maxFineAmount)) {
-      fineAmount = fineConfig.maxFineAmount;
-    }
-
-    // Update the issue with calculated fine
-    await this.prisma.issue.update({
-      where: { id: issueId },
-      data: { 
-        fineAmount,
-        status: overdueDays > 0 ? 'OVERDUE' : issue.status,
-      },
-    });
-
-    this.logger.log(`Fine calculated for issue ${issueId}: ₹${fineAmount} (${overdueDays} days overdue)`);
-
-    return fineAmount;
-  }
-
-  /**
-   * Calculate fines for all active issues
-   */
-  async calculateAllActiveFines(): Promise<{ updated: number; totalFines: Decimal }> {
-    const activeIssues = await this.prisma.issue.findMany({
-      where: {
-        status: 'ACTIVE',
-        actualReturnDate: null,
-      },
-    });
-
-    let updated = 0;
-    let totalFines = new Decimal(0);
-
-    for (const issue of activeIssues) {
-      try {
-        const fine = await this.calculateFine(issue.id);
-        if (fine.gt(0)) {
-          updated++;
-          totalFines = totalFines.add(fine);
-        }
-      } catch (error) {
-        this.logger.error(`Error calculating fine for issue ${issue.id}:`, error);
-      }
-    }
-
-    return { updated, totalFines };
-  }
-
-  /**
-   * Get overdue books with fines
-   */
-  async getOverdueBooks(page = 1, limit = 10) {
-    const skip = (page - 1) * limit;
-    
-    const [overdueIssues, total] = await Promise.all([
-      this.prisma.issue.findMany({
-        where: {
-          status: 'OVERDUE',
-          actualReturnDate: null,
-        },
-        include: {
-          book: {
-            include: {
-              authors: {
-                include: { author: true },
-              },
-            },
-          },
-          issuedTo: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
-          },
-        },
-        orderBy: { expectedReturnDate: 'asc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.issue.count({
-        where: {
-          status: 'OVERDUE',
-          actualReturnDate: null,
-        },
-      }),
-    ]);
-
-    return {
-      data: overdueIssues.map(issue => ({
-        ...issue,
-        overdueDays: Math.ceil(
-          (new Date().getTime() - new Date(issue.expectedReturnDate).getTime()) / (1000 * 60 * 60 * 24)
-        ),
-      })),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
-  /**
-   * Get user's total outstanding fines
-   */
-  async getUserOutstandingFines(userId: string): Promise<Decimal> {
-    const result = await this.prisma.issue.aggregate({
+  async getUserFines(userId: string) {
+    const overdueIssues = await this.prisma.issue.findMany({
       where: {
         issuedToId: userId,
         actualReturnDate: null,
-        fineAmount: { gt: 0 },
+        expectedReturnDate: { lt: new Date() },
       },
-      _sum: { fineAmount: true },
+      include: {
+        book: { select: { title: true } },
+      },
+      orderBy: { expectedReturnDate: 'asc' },
     });
 
-    return result._sum.fineAmount || new Decimal(0);
-  }
+    // Calculate fines for each overdue issue
+    const overdueBooks = [];
+    let totalFines = 0;
 
-  /**
-   * Waive fine for an issue (admin/librarian only)
-   */
-  async waiveFine(issueId: string, waiveReason: string, waiveById: string): Promise<void> {
-    await this.prisma.issue.update({
-      where: { id: issueId },
-      data: { 
-        fineAmount: 0,
-        notes: waiveReason,
-      },
-    });
+    for (const issue of overdueIssues) {
+      const fine = await this.calculateFine(issue.id);
+      const daysOverdue = Math.ceil(
+        (new Date().getTime() - new Date(issue.expectedReturnDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
 
-    // Log the action
-    await this.prisma.auditLog.create({
-      data: {
-        action: 'WAIVE_FINE' as any,
-        entity: 'Issue',
-        entityId: issueId,
-        metadata: { waiveReason },
-        userId: waiveById,
-      },
-    });
+      overdueBooks.push({
+        issueId: issue.id,
+        bookTitle: issue.book.title,
+        daysOverdue,
+        fineAmount: Number(fine),
+        dueDate: issue.expectedReturnDate.toISOString().split('T')[0],
+      });
 
-    this.logger.log(`Fine waived for issue ${issueId} by user ${waiveById}`);
+      totalFines += Number(fine);
+    }
+
+    return {
+      totalFines,
+      overdueBooks,
+      message: totalFines > 0 
+        ? `You have ₹${totalFines} in outstanding fines` 
+        : 'No fines! All books returned on time 🎉'
+    };
   }
 
   /**
    * Record fine payment
    */
-  async recordFinePayment(issueId: string, paidAmount: Decimal, paymentMethod: string): Promise<void> {
+  async recordPayment(issueId: string, paidAmount: number, paymentMethod: string) {
     const issue = await this.prisma.issue.findUnique({
       where: { id: issueId },
+      include: { book: { select: { title: true } } },
     });
 
     if (!issue) {
-      throw new Error('Issue not found');
+      throw new NotFoundException('Book issue not found');
     }
 
-    if (paidAmount.gte(issue.fineAmount)) {
-      // Full payment - clear the fine
-      await this.prisma.issue.update({
-        where: { id: issueId },
-        data: { fineAmount: 0 },
-      });
-    } else {
-      // Partial payment - reduce the fine
-      await this.prisma.issue.update({
-        where: { id: issueId },
-        data: { fineAmount: issue.fineAmount.sub(paidAmount) },
-      });
+    const currentFine = Number(issue.fineAmount);
+    
+    if (paidAmount <= 0) {
+      throw new BadRequestException('Payment amount must be greater than 0');
     }
+
+    if (paidAmount > currentFine) {
+      throw new BadRequestException(`Payment amount (₹${paidAmount}) cannot exceed fine amount (₹${currentFine})`);
+    }
+
+    const remainingFine = currentFine - paidAmount;
+
+    // Update the issue with new fine amount
+    await this.prisma.issue.update({
+      where: { id: issueId },
+      data: { fineAmount: new Decimal(remainingFine) },
+    });
 
     // Log the payment
     await this.prisma.auditLog.create({
@@ -226,142 +94,168 @@ export class FinesService {
         metadata: { 
           paidAmount: paidAmount.toString(),
           paymentMethod,
-          remainingFine: issue.fineAmount.sub(paidAmount).toString(),
+          remainingFine: remainingFine.toString(),
         },
         userId: issue.issuedToId,
       },
     });
 
-    this.logger.log(`Fine payment recorded for issue ${issueId}: ₹${paidAmount}`);
+    this.logger.log(`Fine payment recorded: ₹${paidAmount} for issue ${issueId}`);
+
+    return {
+      message: remainingFine === 0 ? 'Fine fully paid!' : 'Partial payment recorded',
+      issueId,
+      bookTitle: issue.book.title,
+      paidAmount,
+      remainingFine,
+      paymentMethod,
+      status: remainingFine === 0 ? 'PAID' : 'PARTIAL'
+    };
   }
 
   /**
-   * Get fine configuration
+   * Get all overdue books (admin only)
    */
-  async getFineConfiguration() {
-    let config = await (this.prisma as any).fineConfiguration.findFirst({
-      where: { isActive: true },
-      orderBy: { createdAt: 'desc' },
+  async getOverdueBooks() {
+    const overdueIssues = await this.prisma.issue.findMany({
+      where: {
+        actualReturnDate: null,
+        expectedReturnDate: { lt: new Date() },
+      },
+      include: {
+        book: { select: { title: true, isbn: true } },
+        issuedTo: { 
+          select: { 
+            firstName: true, 
+            lastName: true, 
+            email: true 
+          } 
+        },
+      },
+      orderBy: { expectedReturnDate: 'asc' },
     });
 
-    if (!config) {
-      // Create default configuration if none exists (Indian Rupees)
-      config = await (this.prisma as any).fineConfiguration.create({
-        data: {
-          finePerDay: new Decimal(10.00), // ₹10 per day
-          maxFineAmount: new Decimal(1000.00), // ₹1000 maximum
-          gracePeriodDays: 1,
-          isActive: true,
-        },
+    const overdueBooks = [];
+    let totalFines = 0;
+
+    for (const issue of overdueIssues) {
+      const fine = await this.calculateFine(issue.id);
+      const daysOverdue = Math.ceil(
+        (new Date().getTime() - new Date(issue.expectedReturnDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      overdueBooks.push({
+        issueId: issue.id,
+        bookTitle: issue.book.title,
+        isbn: issue.book.isbn,
+        userName: `${issue.issuedTo.firstName} ${issue.issuedTo.lastName}`,
+        userEmail: issue.issuedTo.email,
+        daysOverdue,
+        fineAmount: Number(fine),
+        dueDate: issue.expectedReturnDate.toISOString().split('T')[0],
       });
+
+      totalFines += Number(fine);
     }
 
-    return config;
+    return {
+      overdueBooks,
+      totalFines,
+      count: overdueBooks.length,
+      message: `Found ${overdueBooks.length} overdue books with ₹${totalFines} total fines`
+    };
   }
 
   /**
-   * Update fine configuration (admin only)
+   * Waive fine (admin only)
    */
-  async updateFineConfiguration(
-    finePerDay: number,
-    maxFineAmount: number,
-    gracePeriodDays: number,
-    updatedById: string,
-  ) {
-    // Deactivate current configuration
-    await (this.prisma as any).fineConfiguration.updateMany({
-      where: { isActive: true },
-      data: { isActive: false },
+  async waiveFine(issueId: string, reason: string, adminId: string) {
+    const issue = await this.prisma.issue.findUnique({
+      where: { id: issueId },
+      include: { book: { select: { title: true } } },
     });
 
-    // Create new configuration
-    const newConfig = await (this.prisma as any).fineConfiguration.create({
-      data: {
-        finePerDay: new Decimal(finePerDay),
-        maxFineAmount: new Decimal(maxFineAmount),
-        gracePeriodDays,
-        isActive: true,
+    if (!issue) {
+      throw new NotFoundException('Book issue not found');
+    }
+
+    const waiveAmount = Number(issue.fineAmount);
+
+    await this.prisma.issue.update({
+      where: { id: issueId },
+      data: { 
+        fineAmount: new Decimal(0),
+        notes: reason,
       },
     });
 
-    // Log the change
+    // Log the waiver
     await this.prisma.auditLog.create({
       data: {
-        action: 'UPDATE_CATEGORY' as any, // We can add UPDATE_FINE_CONFIG later
-        entity: 'FineConfiguration',
-        entityId: newConfig.id,
-        metadata: { finePerDay, maxFineAmount, gracePeriodDays },
-        userId: updatedById,
+        action: 'WAIVE_FINE' as any,
+        entity: 'Issue',
+        entityId: issueId,
+        metadata: { reason, waiveAmount: waiveAmount.toString() },
+        userId: adminId,
       },
     });
 
-    return newConfig;
+    this.logger.log(`Fine waived: ₹${waiveAmount} for issue ${issueId} by admin ${adminId}`);
+
+    return {
+      message: 'Fine waived successfully',
+      issueId,
+      bookTitle: issue.book.title,
+      waiveAmount,
+      reason,
+    };
   }
 
   /**
-   * Create sample overdue issues for testing (TESTING ONLY)
+   * Calculate fine for an issue (public method for other services)
    */
-  async createSampleOverdueIssues(createdById: string) {
-    // Get some available books
-    const books = await this.prisma.book.findMany({
-      where: { availableCopies: { gt: 0 } },
-      take: 3,
+  async calculateFine(issueId: string): Promise<Decimal> {
+    const issue = await this.prisma.issue.findUnique({
+      where: { id: issueId },
     });
 
-    // Get some users (excluding the creator)
-    const users = await this.prisma.user.findMany({
-      where: { 
-        id: { not: createdById },
-        role: 'MEMBER'
+    if (!issue || issue.actualReturnDate) {
+      return issue?.fineAmount || new Decimal(0);
+    }
+
+    const currentDate = new Date();
+    const expectedReturnDate = new Date(issue.expectedReturnDate);
+
+    // Calculate overdue days
+    const overdueDays = Math.max(
+      0,
+      Math.ceil((currentDate.getTime() - expectedReturnDate.getTime()) / (1000 * 60 * 60 * 24))
+    );
+
+    if (overdueDays <= 0) {
+      return new Decimal(0);
+    }
+
+    // Simple calculation: ₹10 per day, max ₹500
+    const finePerDay = 10;
+    const maxFine = 500;
+    let fineAmount = overdueDays * finePerDay;
+    
+    if (fineAmount > maxFine) {
+      fineAmount = maxFine;
+    }
+
+    const fine = new Decimal(fineAmount);
+
+    // Update the issue with calculated fine
+    await this.prisma.issue.update({
+      where: { id: issueId },
+      data: { 
+        fineAmount: fine,
+        status: 'OVERDUE',
       },
-      take: 3,
     });
 
-    if (books.length === 0 || users.length === 0) {
-      throw new Error('Not enough books or users to create sample data');
-    }
-
-    let created = 0;
-    let totalFines = new Decimal(0);
-
-    // Create overdue issues
-    for (let i = 0; i < Math.min(books.length, users.length); i++) {
-      const book = books[i];
-      const user = users[i];
-
-      // Create issue with past due date (5-15 days ago)
-      const daysOverdue = 5 + i * 5;
-      const issueDate = new Date();
-      issueDate.setDate(issueDate.getDate() - (daysOverdue + 14)); // Issue date
-
-      const expectedReturnDate = new Date(issueDate);
-      expectedReturnDate.setDate(expectedReturnDate.getDate() + 14); // 14 days to return
-
-      const issue = await this.prisma.issue.create({
-        data: {
-          bookId: book.id,
-          issuedToId: user.id,
-          processedById: createdById,
-          issueDate,
-          expectedReturnDate,
-          status: 'OVERDUE',
-        },
-      });
-
-      // Update book availability
-      await this.prisma.book.update({
-        where: { id: book.id },
-        data: { availableCopies: { decrement: 1 } },
-      });
-
-      // Calculate fine
-      const fine = await this.calculateFine(issue.id);
-      totalFines = totalFines.add(fine);
-      created++;
-
-      this.logger.log(`Created sample overdue issue: ${issue.id} with fine ₹${fine}`);
-    }
-
-    return { created, totalFines };
+    return fine;
   }
 }
