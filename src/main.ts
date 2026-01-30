@@ -48,6 +48,17 @@ async function bootstrap() {
       - **Librarian**: librarian@library.com / librarian123 (Manage books & users)
       - **Member**: member@library.com / member123 (View only)
       
+      ### ⚠️ Common Testing Mistakes
+      - ❌ Wrong email: admin@library.cm (missing 'o')
+      - ✅ Correct email: admin@library.com
+      - ❌ Forgot Bearer: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      - ✅ Correct format: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      
+      ### 🔍 How to Know if API Call Worked
+      - ✅ Success: "success": true in response
+      - ❌ Error: "success": false in response
+      - 📊 Check the "message" field for clear explanation
+      
       ### 🔑 Authentication Required
       Most endpoints need authentication. Look for the 🔒 lock icon next to endpoints.
       
