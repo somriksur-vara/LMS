@@ -49,48 +49,11 @@ services:
     command: >
       sh -c "
         npx prisma migrate deploy &&
-        npx prisma db seed &&
         node dist/main
       "
 
-  # Redis (Optional - for caching and sessions)
-  redis:
-    image: redis:7-alpine
-    container_name: lms-redis
-    restart: unless-stopped
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - lms-network
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Nginx (Optional - for reverse proxy and load balancing)
-  nginx:
-    image: nginx:alpine
-    container_name: lms-nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - api
-    networks:
-      - lms-network
-
 volumes:
   postgres_data:
-    driver: local
-  redis_data:
     driver: local
 
 networks:
