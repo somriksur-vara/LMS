@@ -25,13 +25,35 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'User login',
-    description: 'Authenticate user and return JWT token',
+    summary: '🔐 Login to get access token',
+    description: `
+      **Step 1**: Use this endpoint to login and get your JWT token.
+      
+      **Test Credentials:**
+      - Admin: admin@library.com / admin123
+      - Librarian: librarian@library.com / librarian123  
+      - Member: member@library.com / member123
+      
+      **Step 2**: Copy the accessToken from response
+      **Step 3**: Click 🔒 Authorize button and paste: Bearer YOUR_TOKEN
+    `,
   })
   @ApiResponse({
     status: 200,
-    description: 'Login successful',
+    description: 'Login successful - Copy the accessToken!',
     type: AuthResponseDto,
+    schema: {
+      example: {
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        user: {
+          id: 'clr123abc456def789',
+          email: 'admin@library.com',
+          firstName: 'System',
+          lastName: 'Administrator',
+          role: 'ADMIN'
+        }
+      }
+    }
   })
   @ApiResponse({
     status: 401,
@@ -70,10 +92,10 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'User logout',
-    description: 'Logout user and log the activity',
+    summary: '🚪 Logout and end session',
+    description: 'Logout current user and log the activity for audit purposes.',
   })
   @ApiResponse({
     status: 200,

@@ -296,4 +296,71 @@ export class FinesService {
 
     return newConfig;
   }
+
+  /**
+   * Create sample overdue issues for testing (TESTING ONLY)
+   */
+  async createSampleOverdueIssues(createdById: string) {
+    // Get some available books
+    const books = await this.prisma.book.findMany({
+      where: { availableCopies: { gt: 0 } },
+      take: 3,
+    });
+
+    // Get some users (excluding the creator)
+    const users = await this.prisma.user.findMany({
+      where: { 
+        id: { not: createdById },
+        role: 'MEMBER'
+      },
+      take: 3,
+    });
+
+    if (books.length === 0 || users.length === 0) {
+      throw new Error('Not enough books or users to create sample data');
+    }
+
+    let created = 0;
+    let totalFines = new Decimal(0);
+
+    // Create overdue issues
+    for (let i = 0; i < Math.min(books.length, users.length); i++) {
+      const book = books[i];
+      const user = users[i];
+
+      // Create issue with past due date (5-15 days ago)
+      const daysOverdue = 5 + i * 5;
+      const issueDate = new Date();
+      issueDate.setDate(issueDate.getDate() - (daysOverdue + 14)); // Issue date
+
+      const expectedReturnDate = new Date(issueDate);
+      expectedReturnDate.setDate(expectedReturnDate.getDate() + 14); // 14 days to return
+
+      const issue = await this.prisma.issue.create({
+        data: {
+          bookId: book.id,
+          issuedToId: user.id,
+          processedById: createdById,
+          issueDate,
+          expectedReturnDate,
+          status: 'OVERDUE',
+        },
+      });
+
+      // Update book availability
+      await this.prisma.book.update({
+        where: { id: book.id },
+        data: { availableCopies: { decrement: 1 } },
+      });
+
+      // Calculate fine
+      const fine = await this.calculateFine(issue.id);
+      totalFines = totalFines.add(fine);
+      created++;
+
+      this.logger.log(`Created sample overdue issue: ${issue.id} with fine ₹${fine}`);
+    }
+
+    return { created, totalFines };
+  }
 }

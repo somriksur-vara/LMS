@@ -33,19 +33,28 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Library Management System API')
     .setDescription(`
-      A comprehensive Library Management System API built with NestJS, PostgreSQL, and Prisma.
+      ## 📚 Welcome to Library Management System API
       
-      ## Features
-      - **Multi-role Authentication**: Admin, Librarian, and Member roles with JWT-based authentication
-      - **Book Management**: Complete CRUD operations with ISBN validation and availability tracking
-      - **Issue Management**: Book checkout/return with fine calculation and overdue tracking
-      - **Audit Logging**: Comprehensive activity tracking for compliance and monitoring
-      - **Advanced Search**: Filter books by author, category, availability status
-      - **Role-Based Access Control**: Granular permissions based on user roles
+      A complete solution for managing library operations with role-based access control.
       
-      ## Authentication
-      Most endpoints require authentication. Use the login endpoint to obtain a JWT token,
-      then include it in the Authorization header as: \`Bearer <token>\`
+      ### 🚀 Quick Start Guide
+      1. **Login**: Use /auth/login with default credentials
+      2. **Get Token**: Copy the access token from login response  
+      3. **Authorize**: Click 🔒 Authorize button and paste: Bearer YOUR_TOKEN
+      4. **Test APIs**: Now you can test all protected endpoints!
+      
+      ### 👥 Default Test Users
+      - **Admin**: admin@library.com / admin123 (Full access)
+      - **Librarian**: librarian@library.com / librarian123 (Manage books & users)
+      - **Member**: member@library.com / member123 (View only)
+      
+      ### 🔑 Authentication Required
+      Most endpoints need authentication. Look for the 🔒 lock icon next to endpoints.
+      
+      ### 💡 Testing Tips
+      - Start with Authentication → Login
+      - Use the Authorize button after login
+      - Test in order: Auth → Users → Books → Issues → Fines
     `)
     .setVersion('1.0.0')
     .addBearerAuth(
@@ -59,13 +68,14 @@ async function bootstrap() {
       },
       'JWT-auth',
     )
-    .addTag('Authentication', 'User authentication and authorization')
-    .addTag('Users', 'User management operations')
-    .addTag('Books', 'Book catalog management')
-    .addTag('Categories', 'Book category management')
-    .addTag('Issues', 'Book issue and return operations')
-    .addTag('Audit Logs', 'System activity audit logs')
-    .addTag('Health', 'Health check endpoints')
+    .addTag('Authentication', '🔐 Login/logout and get access tokens')
+    .addTag('Users', '👥 Manage user accounts and profiles')
+    .addTag('Books', '📚 Manage book catalog and inventory')
+    .addTag('Categories', '📂 Organize books by categories')
+    .addTag('Issues', '📖 Book checkout, return and tracking')
+    .addTag('Fines', '💰 Fine calculation and payment management')
+    .addTag('Audit Logs', '📋 Track all system activities')
+    .addTag('Health', '❤️ System health and status checks')
     .build();
 
   // Create the documentation and make it available at /api/docs
