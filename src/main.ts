@@ -46,11 +46,6 @@ async function bootstrap() {
       ## Authentication
       Most endpoints require authentication. Use the login endpoint to obtain a JWT token,
       then include it in the Authorization header as: \`Bearer <token>\`
-      
-      ## Default Users (for testing)
-      - **Admin**: admin@library.com / admin123
-      - **Librarian**: librarian@library.com / librarian123  
-      - **Member**: member@library.com / member123
     `)
     .setVersion('1.0.0')
     .addBearerAuth(
