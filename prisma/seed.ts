@@ -195,12 +195,29 @@ async function main() {
     }
   }
 
+  // Create default fine configuration
+  const fineConfig = await prisma.fineConfiguration.upsert({
+    where: { id: 'default-config' },
+    update: {},
+    create: {
+      id: 'default-config',
+      finePerDay: 5.00,
+      maxFineAmount: 500.00,
+      gracePeriodDays: 1,
+      isActive: true,
+    },
+  });
+
   console.log('✅ Database seeding completed successfully!');
   console.log('📚 Created users:');
   console.log('   - Admin: admin@library.com / admin123');
   console.log('   - Librarian: librarian@library.com / librarian123');
   console.log('   - Member: member@library.com / member123');
   console.log('📖 Created sample books, authors, and categories');
+  console.log('💰 Fine Configuration:');
+  console.log(`   - Fine per day: $${fineConfig.finePerDay}`);
+  console.log(`   - Maximum fine: $${fineConfig.maxFineAmount}`);
+  console.log(`   - Grace period: ${fineConfig.gracePeriodDays} day(s)`);
 }
 
 main()

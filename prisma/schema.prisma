@@ -126,6 +126,18 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+model FineConfiguration {
+  id                    String   @id @default(cuid())
+  finePerDay            Decimal  @default(5.00) @db.Decimal(10, 2)
+  maxFineAmount         Decimal  @default(500.00) @db.Decimal(10, 2)
+  gracePeriodDays       Int      @default(0)
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("fine_configurations")
+}
+
 enum UserRole {
   ADMIN
   LIBRARIAN
@@ -162,4 +174,7 @@ enum AuditAction {
   DELETE_CATEGORY
   USER_LOGIN
   USER_LOGOUT
+  CALCULATE_FINE
+  WAIVE_FINE
+  PAY_FINE
 }

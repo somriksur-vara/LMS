@@ -14,6 +14,7 @@ import { UsersModule } from './modules/users/users.module';        // Manages us
 import { BooksModule } from './modules/books/books.module';        // Manages the book catalog
 import { CategoriesModule } from './modules/categories/categories.module'; // Manages book categories
 import { IssuesModule } from './modules/issues/issues.module';     // Handles book issue/return operations
+import { FinesModule } from './modules/fines/fines.module';        // Handles fine calculations and payments
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';  // Tracks user activities
 import { HealthModule } from './health/health.module';             // Provides health checks
 
@@ -38,6 +39,7 @@ import { HttpExceptionFilter, AllExceptionsFilter } from './common/filters';
     BooksModule,       // Book catalog management
     CategoriesModule,  // Book category management
     IssuesModule,      // Book issue and return operations
+    FinesModule,       // Fine calculations and payment management
     AuditLogsModule,   // Activity tracking and logging
     HealthModule,      // Health check endpoints
   ],

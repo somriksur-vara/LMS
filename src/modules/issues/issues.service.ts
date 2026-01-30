@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { FinesService } from '../fines/fines.service';
 import { CreateIssueDto, UpdateIssueDto, IssueResponseDto, ReturnBookDto } from './dto/index';
 import { PaginationOptions, calculatePagination, createPaginationResult } from '@/common/utils';
 import { AuditAction, IssueStatus, BookStatus } from '@/common/enums';
@@ -15,6 +16,7 @@ export class IssuesService {
   constructor(
     private prisma: PrismaService,
     private auditLogsService: AuditLogsService,
+    private finesService: FinesService,
   ) {}
 
   async create(createIssueDto: CreateIssueDto, processedById: string): Promise<IssueResponseDto> {
@@ -290,17 +292,13 @@ export class IssuesService {
     }
 
     const returnDate = new Date();
-    let fine = 0;
-
-    // Calculate fine if overdue
-    if (returnDate > issue.expectedReturnDate) {
-      const overdueDays = Math.ceil((returnDate.getTime() - issue.expectedReturnDate.getTime()) / (1000 * 60 * 60 * 24));
-      fine = overdueDays * 1; // $1 per day fine
-    }
-
+    
+    // Calculate fine using the fine service
+    let calculatedFine = await this.finesService.calculateFine(id);
+    
     // Add any additional fine from the request
     if (returnBookDto.additionalFine) {
-      fine += returnBookDto.additionalFine;
+      calculatedFine = calculatedFine.add(returnBookDto.additionalFine);
     }
 
     // Update issue and book availability in a transaction
@@ -310,7 +308,7 @@ export class IssuesService {
         where: { id },
         data: {
           actualReturnDate: returnDate,
-          fineAmount: fine,
+          fineAmount: calculatedFine,
           status: IssueStatus.RETURNED,
         },
         include: {
@@ -362,7 +360,7 @@ export class IssuesService {
         bookTitle: result.book.title,
         issuedToEmail: result.issuedTo.email,
         returnDate,
-        fine,
+        fine: calculatedFine.toString(),
         overdue: returnDate > issue.expectedReturnDate,
       },
     });
